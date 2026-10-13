@@ -241,6 +241,7 @@ paths:
       - auth
   /api/v1/roles:
     get:
+      description: Superadmin only.
       produces:
       - application/json
       responses:
@@ -250,12 +251,23 @@ paths:
             items:
               $ref: '#/definitions/roles.Role'
             type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorBody'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorBody'
+      security:
+      - BearerAuth: []
       summary: List roles
       tags:
       - roles
     post:
       consumes:
       - application/json
+      description: Superadmin only.
       parameters:
       - description: Role data
         in: body
@@ -274,15 +286,26 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/utils.ErrorBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorBody'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorBody'
         "409":
           description: Conflict
           schema:
             $ref: '#/definitions/utils.ErrorBody'
+      security:
+      - BearerAuth: []
       summary: Create a role
       tags:
       - roles
   /api/v1/roles/{id}:
     delete:
+      description: Superadmin only.
       parameters:
       - description: Role ID
         in: path
@@ -292,6 +315,14 @@ paths:
       responses:
         "204":
           description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorBody'
         "403":
           description: Forbidden
           schema:
@@ -304,10 +335,13 @@ paths:
           description: Conflict
           schema:
             $ref: '#/definitions/utils.ErrorBody'
+      security:
+      - BearerAuth: []
       summary: Delete a role
       tags:
       - roles
     get:
+      description: Superadmin only.
       parameters:
       - description: Role ID
         in: path
@@ -321,16 +355,31 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/roles.Role'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorBody'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorBody'
         "404":
           description: Not Found
           schema:
             $ref: '#/definitions/utils.ErrorBody'
+      security:
+      - BearerAuth: []
       summary: Get a role
       tags:
       - roles
     put:
       consumes:
       - application/json
+      description: Superadmin only.
       parameters:
       - description: Role ID
         in: path
@@ -354,10 +403,20 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/utils.ErrorBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorBody'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorBody'
         "404":
           description: Not Found
           schema:
             $ref: '#/definitions/utils.ErrorBody'
+      security:
+      - BearerAuth: []
       summary: Update a role's display name and description
       tags:
       - roles

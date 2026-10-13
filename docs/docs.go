@@ -161,6 +161,12 @@ const docTemplate = `{
         },
         "/api/v1/roles": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Superadmin only.",
                 "produces": [
                     "application/json"
                 ],
@@ -177,10 +183,28 @@ const docTemplate = `{
                                 "$ref": "#/definitions/roles.Role"
                             }
                         }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorBody"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorBody"
+                        }
                     }
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Superadmin only.",
                 "consumes": [
                     "application/json"
                 ],
@@ -215,6 +239,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/utils.ErrorBody"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorBody"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorBody"
+                        }
+                    },
                     "409": {
                         "description": "Conflict",
                         "schema": {
@@ -226,6 +262,12 @@ const docTemplate = `{
         },
         "/api/v1/roles/{id}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Superadmin only.",
                 "produces": [
                     "application/json"
                 ],
@@ -249,6 +291,24 @@ const docTemplate = `{
                             "$ref": "#/definitions/roles.Role"
                         }
                     },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorBody"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorBody"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -258,6 +318,12 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Superadmin only.",
                 "consumes": [
                     "application/json"
                 ],
@@ -299,6 +365,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/utils.ErrorBody"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorBody"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorBody"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -308,6 +386,12 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Superadmin only.",
                 "tags": [
                     "roles"
                 ],
@@ -324,6 +408,18 @@ const docTemplate = `{
                 "responses": {
                     "204": {
                         "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorBody"
+                        }
                     },
                     "403": {
                         "description": "Forbidden",

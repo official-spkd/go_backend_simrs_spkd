@@ -18,9 +18,13 @@ func NewHandler(service Service) *Handler {
 }
 
 // @Summary	List roles
+// @Description	Superadmin only.
 // @Tags		roles
 // @Produce	json
+// @Security	BearerAuth
 // @Success	200	{array}	Role
+// @Failure	401	{object}	utils.ErrorBody
+// @Failure	403	{object}	utils.ErrorBody
 // @Router		/api/v1/roles [get]
 func (h *Handler) List(c *gin.Context) {
 	out, err := h.service.List(c.Request.Context())
@@ -32,10 +36,15 @@ func (h *Handler) List(c *gin.Context) {
 }
 
 // @Summary	Get a role
+// @Description	Superadmin only.
 // @Tags		roles
 // @Produce	json
 // @Param		id	path		string	true	"Role ID"
+// @Security	BearerAuth
 // @Success	200	{object}	Role
+// @Failure	400	{object}	utils.ErrorBody
+// @Failure	401	{object}	utils.ErrorBody
+// @Failure	403	{object}	utils.ErrorBody
 // @Failure	404	{object}	utils.ErrorBody
 // @Router		/api/v1/roles/{id} [get]
 func (h *Handler) Get(c *gin.Context) {
@@ -52,12 +61,16 @@ func (h *Handler) Get(c *gin.Context) {
 }
 
 // @Summary	Create a role
+// @Description	Superadmin only.
 // @Tags		roles
 // @Accept		json
 // @Produce	json
 // @Param		body	body		CreateRequest	true	"Role data"
+// @Security	BearerAuth
 // @Success	201		{object}	Role
 // @Failure	400		{object}	utils.ErrorBody
+// @Failure	401	{object}	utils.ErrorBody
+// @Failure	403	{object}	utils.ErrorBody
 // @Failure	409		{object}	utils.ErrorBody
 // @Router		/api/v1/roles [post]
 func (h *Handler) Create(c *gin.Context) {
@@ -75,13 +88,17 @@ func (h *Handler) Create(c *gin.Context) {
 }
 
 // @Summary	Update a role's display name and description
+// @Description	Superadmin only.
 // @Tags		roles
 // @Accept		json
 // @Produce	json
 // @Param		id		path		string			true	"Role ID"
 // @Param		body	body		UpdateRequest	true	"Role data"
+// @Security	BearerAuth
 // @Success	200		{object}	Role
 // @Failure	400		{object}	utils.ErrorBody
+// @Failure	401	{object}	utils.ErrorBody
+// @Failure	403	{object}	utils.ErrorBody
 // @Failure	404		{object}	utils.ErrorBody
 // @Router		/api/v1/roles/{id} [put]
 func (h *Handler) Update(c *gin.Context) {
@@ -103,9 +120,13 @@ func (h *Handler) Update(c *gin.Context) {
 }
 
 // @Summary	Delete a role
+// @Description	Superadmin only.
 // @Tags		roles
 // @Param		id	path	string	true	"Role ID"
+// @Security	BearerAuth
 // @Success	204
+// @Failure	400	{object}	utils.ErrorBody
+// @Failure	401	{object}	utils.ErrorBody
 // @Failure	403	{object}	utils.ErrorBody
 // @Failure	404	{object}	utils.ErrorBody
 // @Failure	409	{object}	utils.ErrorBody
