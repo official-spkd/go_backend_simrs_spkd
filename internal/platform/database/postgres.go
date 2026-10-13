@@ -10,9 +10,8 @@ import (
 	"gin-quickstart/internal/platform/config"
 )
 
-// NewPostgres opens a GORM connection to PostgreSQL and configures the pool.
 func NewPostgres(cfg config.DB) (*gorm.DB, error) {
-	db, err := gorm.Open(postgres.Open(cfg.DSN()), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(cfg.DSN()), &gorm.Config{TranslateError: true})
 	if err != nil {
 		return nil, fmt.Errorf("open postgres: %w", err)
 	}
@@ -31,7 +30,6 @@ func NewPostgres(cfg config.DB) (*gorm.DB, error) {
 	return db, nil
 }
 
-// Close releases the underlying connection pool.
 func Close(db *gorm.DB) error {
 	sqlDB, err := db.DB()
 	if err != nil {
