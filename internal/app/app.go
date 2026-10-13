@@ -36,6 +36,7 @@ func New(ctx context.Context, cfg *config.Config, db *gorm.DB) (*gin.Engine, err
 	userSvc := users.NewService(users.NewRepository(db), roleSvc)
 
 	router := gin.Default()
+	router.Use(middleware.SecurityHeaders())
 	swagger.Register(router)
 	router.GET("/ping", ping)
 
