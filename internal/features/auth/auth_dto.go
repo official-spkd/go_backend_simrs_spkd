@@ -12,7 +12,7 @@ type LoginRequest struct {
 }
 
 // RegisterRequest creates a staff account. Role is ignored for the very first account,
-// which always becomes an IT administrator.
+// which always becomes a superadmin.
 type RegisterRequest struct {
 	Name     string `json:"name" binding:"required,max=150" example:"Dr. Jane Doe"`
 	NIP      string `json:"nip" binding:"required,max=30" example:"198001012010011001"`

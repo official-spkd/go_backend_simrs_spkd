@@ -44,7 +44,7 @@ func (h *Handler) Login(c *gin.Context) {
 }
 
 // @Summary		Register a user
-// @Description	Open for the very first account (becomes IT). Afterwards only an IT user can register accounts.
+// @Description	Open for the very first account (becomes superadmin). Afterwards only a superadmin can register accounts.
 // @Tags			auth
 // @Accept			json
 // @Produce		json

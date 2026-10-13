@@ -202,8 +202,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Open for the very first account (becomes IT). Afterwards only an
-        IT user can register accounts.
+      description: Open for the very first account (becomes superadmin). Afterwards
+        only a superadmin can register accounts.
       parameters:
       - description: User data
         in: body
@@ -380,7 +380,8 @@ schemes:
 - https
 securityDefinitions:
   BearerAuth:
-    description: Type "Bearer" followed by a space and the JWT token.
+    description: Enter "Bearer {token}" (the word Bearer, a space, then the access_token
+      from /auth/login).
     in: header
     name: Authorization
     type: apiKey

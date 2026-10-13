@@ -103,7 +103,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Open for the very first account (becomes IT). Afterwards only an IT user can register accounts.",
+                "description": "Open for the very first account (becomes superadmin). Afterwards only a superadmin can register accounts.",
                 "consumes": [
                     "application/json"
                 ],
@@ -564,7 +564,7 @@ const docTemplate = `{
     },
     "securityDefinitions": {
         "BearerAuth": {
-            "description": "Type \"Bearer\" followed by a space and the JWT token.",
+            "description": "Enter \"Bearer {token}\" (the word Bearer, a space, then the access_token from /auth/login).",
             "type": "apiKey",
             "name": "Authorization",
             "in": "header"

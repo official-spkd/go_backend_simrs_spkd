@@ -18,7 +18,7 @@ import (
 // @securityDefinitions.apikey	BearerAuth
 // @in							header
 // @name						Authorization
-// @description					Type "Bearer" followed by a space and the JWT token.
+// @description					Enter "Bearer {token}" (the word Bearer, a space, then the access_token from /auth/login).
 
 // Register mounts the Swagger UI at /swagger/index.html.
 func Register(router *gin.Engine) {

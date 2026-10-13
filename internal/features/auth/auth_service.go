@@ -19,7 +19,7 @@ var (
 	ErrInvalidCredentials = errors.New("invalid credentials")
 	ErrInactiveAccount    = errors.New("account is deactivated")
 	ErrUnauthenticated    = errors.New("authentication required")
-	ErrForbidden          = errors.New("only IT can register new users")
+	ErrForbidden          = errors.New("only superadmin can register new users")
 	ErrRoleRequired       = errors.New("role is required")
 	ErrInvalidRole        = errors.New("role does not exist")
 )
@@ -77,7 +77,7 @@ func (s *service) Login(ctx context.Context, req LoginRequest) (*LoginResponse, 
 }
 
 // Register creates a user. The first account in the system is open to anyone and becomes
-// IT; after that only an authenticated IT user can register new accounts.
+// superadmin; after that only an authenticated superadmin can register new accounts.
 func (s *service) Register(ctx context.Context, req RegisterRequest, actor *utils.TokenClaims) (*models.User, error) {
 	count, err := s.repo.Count(ctx)
 	if err != nil {
@@ -86,12 +86,12 @@ func (s *service) Register(ctx context.Context, req RegisterRequest, actor *util
 
 	roleName := strings.TrimSpace(req.Role)
 	if count == 0 {
-		roleName = roles.IT
+		roleName = roles.Superadmin
 	} else {
 		if actor == nil {
 			return nil, ErrUnauthenticated
 		}
-		if actor.Role != roles.IT {
+		if actor.Role != roles.Superadmin {
 			return nil, ErrForbidden
 		}
 		if roleName == "" {

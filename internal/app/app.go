@@ -38,7 +38,7 @@ func New(ctx context.Context, cfg *config.Config, db *gorm.DB) (*gin.Engine, err
 
 	v1 := router.Group("/api/v1")
 	auth.RegisterRoutes(v1, auth.NewHandler(authSvc), optionalAuth, requiredAuth)
-	roles.RegisterRoutes(v1, roles.NewHandler(roleSvc), requiredAuth, middleware.RequireRoles(roles.IT))
+	roles.RegisterRoutes(v1, roles.NewHandler(roleSvc), requiredAuth, middleware.RequireRoles(roles.Superadmin))
 
 	return router, nil
 }
