@@ -37,6 +37,9 @@ func New(ctx context.Context, cfg *config.Config, db *gorm.DB) (*gin.Engine, err
 
 	router := gin.Default()
 	router.Use(middleware.SecurityHeaders())
+	if len(cfg.CORS.AllowedOrigins) > 0 {
+		router.Use(middleware.CORS(cfg.CORS.AllowedOrigins))
+	}
 	swagger.Register(router)
 	router.GET("/ping", ping)
 

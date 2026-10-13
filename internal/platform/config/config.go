@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -13,6 +14,11 @@ type Config struct {
 	AppPort string
 	DB      DB
 	JWT     JWT
+	CORS    CORS
+}
+
+type CORS struct {
+	AllowedOrigins []string
 }
 
 type JWT struct {
@@ -57,6 +63,9 @@ func Load() *Config {
 			Secret:    getEnv("JWT_SECRET", ""),
 			AccessTTL: time.Duration(getEnvInt("JWT_ACCESS_TTL_HOURS", 8)) * time.Hour,
 		},
+		CORS: CORS{
+			AllowedOrigins: splitCSV(getEnv("CORS_ALLOWED_ORIGINS", "")),
+		},
 	}
 }
 
@@ -74,7 +83,23 @@ func getEnvInt(key string, fallback int) int {
 	return fallback
 }
 
+func splitCSV(v string) []string {
+	var out []string
+	for _, item := range strings.Split(v, ",") {
+		if item = strings.TrimSpace(item); item != "" {
+			out = append(out, item)
+		}
+	}
+	return out
+}
+
 func (c *Config) Validate() error {
+	for _, origin := range c.CORS.AllowedOrigins {
+		if origin == "*" {
+			return fmt.Errorf("CORS_ALLOWED_ORIGINS must list explicit origins, wildcard \"*\" is not allowed")
+		}
+	}
+
 	if len(c.JWT.Secret) < 32 {
 		return fmt.Errorf("JWT_SECRET must be set and at least 32 characters long")
 	}
