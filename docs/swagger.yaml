@@ -134,6 +134,92 @@ definitions:
     required:
     - display_name
     type: object
+  users.ListResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/users.Response'
+        type: array
+      limit:
+        example: 20
+        type: integer
+      page:
+        example: 1
+        type: integer
+      total:
+        example: 42
+        type: integer
+    type: object
+  users.ResetPasswordRequest:
+    properties:
+      new_password:
+        example: n3wS3cretPass!
+        maxLength: 72
+        minLength: 8
+        type: string
+    required:
+    - new_password
+    type: object
+  users.Response:
+    properties:
+      created_at:
+        type: string
+      email:
+        example: jane.doe@hospital.id
+        type: string
+      id:
+        example: 3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71
+        type: string
+      is_active:
+        example: true
+        type: boolean
+      name:
+        example: Dr. Jane Doe
+        type: string
+      nip:
+        example: "198001012010011001"
+        type: string
+      role:
+        example: doctor
+        type: string
+      updated_at:
+        type: string
+    type: object
+  users.UpdateRequest:
+    properties:
+      email:
+        example: jane.doe@hospital.id
+        maxLength: 150
+        type: string
+      name:
+        example: Dr. Jane Doe
+        maxLength: 150
+        type: string
+      nip:
+        example: "198001012010011001"
+        maxLength: 30
+        type: string
+    required:
+    - email
+    - name
+    - nip
+    type: object
+  users.UpdateRoleRequest:
+    properties:
+      role:
+        example: pharmacist
+        type: string
+    required:
+    - role
+    type: object
+  users.UpdateStatusRequest:
+    properties:
+      is_active:
+        example: false
+        type: boolean
+    required:
+    - is_active
+    type: object
   utils.ErrorBody:
     properties:
       error:
@@ -420,6 +506,305 @@ paths:
       summary: Update a role's display name and description
       tags:
       - roles
+  /api/v1/users:
+    get:
+      description: Superadmin only. Supports search by name, NIP or email, and filters
+        by role and status.
+      parameters:
+      - description: Search by name, NIP or email
+        in: query
+        name: search
+        type: string
+      - description: Filter by role name
+        in: query
+        name: role
+        type: string
+      - description: Filter by status
+        in: query
+        name: is_active
+        type: boolean
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page (max 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/users.ListResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorBody'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorBody'
+      security:
+      - BearerAuth: []
+      summary: List users
+      tags:
+      - users
+  /api/v1/users/{id}:
+    delete:
+      description: Superadmin only. You cannot delete your own account.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorBody'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorBody'
+      security:
+      - BearerAuth: []
+      summary: Delete a user
+      tags:
+      - users
+    get:
+      description: Superadmin only.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/users.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorBody'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorBody'
+      security:
+      - BearerAuth: []
+      summary: Get a user
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      description: Superadmin only. Changes name, NIP and email.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Profile data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/users.UpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/users.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorBody'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorBody'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorBody'
+      security:
+      - BearerAuth: []
+      summary: Update a user's profile
+      tags:
+      - users
+  /api/v1/users/{id}/password:
+    put:
+      consumes:
+      - application/json
+      description: Superadmin only. Sets a new password without needing the old one.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: New password
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/users.ResetPasswordRequest'
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorBody'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorBody'
+      security:
+      - BearerAuth: []
+      summary: Reset a user's password
+      tags:
+      - users
+  /api/v1/users/{id}/role:
+    patch:
+      consumes:
+      - application/json
+      description: Superadmin only. You cannot change your own role.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: New role
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/users.UpdateRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/users.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorBody'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorBody'
+      security:
+      - BearerAuth: []
+      summary: Change a user's role
+      tags:
+      - users
+  /api/v1/users/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      description: Superadmin only. You cannot change your own status.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: New status
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/users.UpdateStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/users.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorBody'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorBody'
+      security:
+      - BearerAuth: []
+      summary: Activate or deactivate a user
+      tags:
+      - users
   /ping:
     get:
       produces:

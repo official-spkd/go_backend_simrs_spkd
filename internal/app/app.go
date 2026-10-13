@@ -9,6 +9,7 @@ import (
 
 	"gin-quickstart/internal/features/auth"
 	"gin-quickstart/internal/features/roles"
+	"gin-quickstart/internal/features/users"
 	"gin-quickstart/internal/platform/config"
 	"gin-quickstart/internal/platform/middleware"
 	"gin-quickstart/internal/platform/models"
@@ -32,13 +33,17 @@ func New(ctx context.Context, cfg *config.Config, db *gorm.DB) (*gin.Engine, err
 
 	authSvc := auth.NewService(auth.NewRepository(db), roleSvc, tokens)
 
+	userSvc := users.NewService(users.NewRepository(db), roleSvc)
+
 	router := gin.Default()
 	swagger.Register(router)
 	router.GET("/ping", ping)
 
 	v1 := router.Group("/api/v1")
 	auth.RegisterRoutes(v1, auth.NewHandler(authSvc), optionalAuth, requiredAuth)
-	roles.RegisterRoutes(v1, roles.NewHandler(roleSvc), requiredAuth, middleware.RequireRoles(roles.Superadmin))
+	superadminOnly := middleware.RequireRoles(roles.Superadmin)
+	roles.RegisterRoutes(v1, roles.NewHandler(roleSvc), requiredAuth, superadminOnly)
+	users.RegisterRoutes(v1, users.NewHandler(userSvc), requiredAuth, superadminOnly)
 
 	return router, nil
 }
