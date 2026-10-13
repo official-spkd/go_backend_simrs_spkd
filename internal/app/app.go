@@ -7,26 +7,38 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
+	"gin-quickstart/internal/features/auth"
 	"gin-quickstart/internal/features/roles"
+	"gin-quickstart/internal/platform/config"
+	"gin-quickstart/internal/platform/middleware"
+	"gin-quickstart/internal/platform/models"
+	"gin-quickstart/internal/platform/utils"
 	"gin-quickstart/pkg/swagger"
 )
 
-func New(ctx context.Context, db *gorm.DB) (*gin.Engine, error) {
-	if err := db.AutoMigrate(&roles.Role{}); err != nil {
+func New(ctx context.Context, cfg *config.Config, db *gorm.DB) (*gin.Engine, error) {
+	if err := db.AutoMigrate(&roles.Role{}, &models.User{}); err != nil {
 		return nil, fmt.Errorf("migrate: %w", err)
 	}
+
+	tokens := utils.NewTokenManager(cfg.JWT.Secret, cfg.JWT.AccessTTL)
+	requiredAuth := middleware.Required(tokens)
+	optionalAuth := middleware.Optional(tokens)
 
 	roleSvc := roles.NewService(roles.NewRepository(db))
 	if err := roleSvc.SeedDefaults(ctx); err != nil {
 		return nil, fmt.Errorf("seed roles: %w", err)
 	}
 
+	authSvc := auth.NewService(auth.NewRepository(db), roleSvc, tokens)
+
 	router := gin.Default()
 	swagger.Register(router)
 	router.GET("/ping", ping)
 
 	v1 := router.Group("/api/v1")
-	roles.RegisterRoutes(v1, roles.NewHandler(roleSvc))
+	auth.RegisterRoutes(v1, auth.NewHandler(authSvc), optionalAuth, requiredAuth)
+	roles.RegisterRoutes(v1, roles.NewHandler(roleSvc), requiredAuth, middleware.RequireRoles(roles.IT))
 
 	return router, nil
 }

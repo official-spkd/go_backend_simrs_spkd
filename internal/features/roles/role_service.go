@@ -19,6 +19,7 @@ var (
 type Service interface {
 	List(ctx context.Context) ([]Role, error)
 	Get(ctx context.Context, id uuid.UUID) (*Role, error)
+	FindByName(ctx context.Context, name string) (*Role, error)
 	Create(ctx context.Context, req CreateRequest) (*Role, error)
 	Update(ctx context.Context, id uuid.UUID, req UpdateRequest) (*Role, error)
 	Delete(ctx context.Context, id uuid.UUID) error
@@ -39,6 +40,10 @@ func (s *service) List(ctx context.Context) ([]Role, error) {
 
 func (s *service) Get(ctx context.Context, id uuid.UUID) (*Role, error) {
 	return s.repo.FindByID(ctx, id)
+}
+
+func (s *service) FindByName(ctx context.Context, name string) (*Role, error) {
+	return s.repo.FindByName(ctx, name)
 }
 
 func (s *service) Create(ctx context.Context, req CreateRequest) (*Role, error) {

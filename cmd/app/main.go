@@ -11,6 +11,9 @@ import (
 
 func main() {
 	cfg := config.Load()
+	if err := cfg.Validate(); err != nil {
+		log.Fatalf("config: %v", err)
+	}
 
 	db, err := database.NewPostgres(cfg.DB)
 	if err != nil {
@@ -18,7 +21,7 @@ func main() {
 	}
 	defer database.Close(db)
 
-	router, err := app.New(context.Background(), db)
+	router, err := app.New(context.Background(), cfg, db)
 	if err != nil {
 		log.Fatalf("app: %v", err)
 	}

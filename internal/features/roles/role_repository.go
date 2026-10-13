@@ -18,6 +18,7 @@ var (
 type Repository interface {
 	List(ctx context.Context) ([]Role, error)
 	FindByID(ctx context.Context, id uuid.UUID) (*Role, error)
+	FindByName(ctx context.Context, name string) (*Role, error)
 	Create(ctx context.Context, r *Role) error
 	Update(ctx context.Context, r *Role) error
 	Delete(ctx context.Context, id uuid.UUID) error
@@ -45,6 +46,18 @@ func (r *repository) List(ctx context.Context) ([]Role, error) {
 func (r *repository) FindByID(ctx context.Context, id uuid.UUID) (*Role, error) {
 	var role Role
 	err := r.db.WithContext(ctx).First(&role, "id = ?", id).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &role, nil
+}
+
+func (r *repository) FindByName(ctx context.Context, name string) (*Role, error) {
+	var role Role
+	err := r.db.WithContext(ctx).Where("name = ?", name).First(&role).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrNotFound
 	}

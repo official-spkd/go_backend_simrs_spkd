@@ -3,6 +3,8 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -10,6 +12,12 @@ import (
 type Config struct {
 	AppPort string
 	DB      DB
+	JWT     JWT
+}
+
+type JWT struct {
+	Secret    string
+	AccessTTL time.Duration
 }
 
 type DB struct {
@@ -45,6 +53,10 @@ func Load() *Config {
 			SSLMode:  getEnv("DB_SSLMODE", "disable"),
 			TimeZone: getEnv("DB_TIMEZONE", "Asia/Jakarta"),
 		},
+		JWT: JWT{
+			Secret:    getEnv("JWT_SECRET", ""),
+			AccessTTL: time.Duration(getEnvInt("JWT_ACCESS_TTL_HOURS", 8)) * time.Hour,
+		},
 	}
 }
 
@@ -53,4 +65,18 @@ func getEnv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+func getEnvInt(key string, fallback int) int {
+	if v, err := strconv.Atoi(os.Getenv(key)); err == nil && v > 0 {
+		return v
+	}
+	return fallback
+}
+
+func (c *Config) Validate() error {
+	if len(c.JWT.Secret) < 32 {
+		return fmt.Errorf("JWT_SECRET must be set and at least 32 characters long")
+	}
+	return nil
 }
