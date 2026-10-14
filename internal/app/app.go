@@ -9,6 +9,7 @@ import (
 	"gorm.io/gorm"
 
 	"gin-quickstart/internal/features/auth"
+	"gin-quickstart/internal/features/patients"
 	"gin-quickstart/internal/features/roles"
 	"gin-quickstart/internal/features/users"
 	"gin-quickstart/internal/platform/config"
@@ -19,8 +20,13 @@ import (
 )
 
 func New(ctx context.Context, cfg *config.Config, db *gorm.DB) (*gin.Engine, error) {
-	if err := db.AutoMigrate(&roles.Role{}, &models.User{}); err != nil {
+	if err := db.AutoMigrate(&roles.Role{}, &models.User{}, &models.Patient{}); err != nil {
 		return nil, fmt.Errorf("migrate: %w", err)
+	}
+
+	utils.InitValidation()
+	if err := patients.RegisterValidators(); err != nil {
+		return nil, fmt.Errorf("register validators: %w", err)
 	}
 
 	tokens := utils.NewTokenManager(cfg.JWT.Secret, cfg.JWT.AccessTTL)
@@ -35,6 +41,7 @@ func New(ctx context.Context, cfg *config.Config, db *gorm.DB) (*gin.Engine, err
 	authSvc := auth.NewService(auth.NewRepository(db), roleSvc, tokens)
 
 	userSvc := users.NewService(users.NewRepository(db), roleSvc)
+	patientSvc := patients.NewService(patients.NewRepository(db))
 
 	router := gin.Default()
 	router.Use(middleware.SecurityHeaders())
@@ -49,6 +56,7 @@ func New(ctx context.Context, cfg *config.Config, db *gorm.DB) (*gin.Engine, err
 	superadminOnly := middleware.RequireRoles(roles.Superadmin)
 	roles.RegisterRoutes(v1, roles.NewHandler(roleSvc), requiredAuth, superadminOnly)
 	users.RegisterRoutes(v1, users.NewHandler(userSvc), requiredAuth, superadminOnly)
+	patients.RegisterRoutes(v1, patients.NewHandler(patientSvc), requiredAuth, middleware.RequireRoles(roles.FrontOffice))
 
 	return router, nil
 }

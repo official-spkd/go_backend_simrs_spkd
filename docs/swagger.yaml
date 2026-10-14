@@ -78,6 +78,206 @@ definitions:
         example: doctor
         type: string
     type: object
+  models.Gender:
+    enum:
+    - Male
+    - Female
+    type: string
+    x-enum-varnames:
+    - GenderMale
+    - GenderFemale
+  models.Payer:
+    enum:
+    - General
+    - BPJS
+    - Insurance
+    type: string
+    x-enum-varnames:
+    - PayerGeneral
+    - PayerBPJS
+    - PayerInsurance
+  patients.PatientRequest:
+    properties:
+      allergies:
+        example: Penicillin, peanuts
+        maxLength: 1000
+        type: string
+      birth_date:
+        example: "1990-05-17"
+        type: string
+      birth_place:
+        example: Jakarta
+        maxLength: 100
+        type: string
+      blood_type:
+        enum:
+        - A
+        - B
+        - AB
+        - O
+        example: O
+        type: string
+      domicile_address:
+        example: Jl. Mawar No. 9, Depok
+        maxLength: 500
+        minLength: 5
+        type: string
+      education:
+        example: Bachelor
+        maxLength: 50
+        type: string
+      email:
+        example: siti@example.com
+        maxLength: 150
+        type: string
+      emergency_contact_name:
+        example: Budi Santoso
+        maxLength: 150
+        minLength: 3
+        type: string
+      emergency_contact_phone:
+        example: "081298765432"
+        type: string
+      emergency_contact_relationship:
+        example: Husband
+        maxLength: 50
+        type: string
+      full_name:
+        example: Siti Rahmawati
+        maxLength: 150
+        minLength: 3
+        type: string
+      gender:
+        allOf:
+        - $ref: '#/definitions/models.Gender'
+        enum:
+        - Male
+        - Female
+        example: Female
+      id_card_address:
+        example: Jl. Melati No. 5, Jakarta Selatan
+        maxLength: 500
+        minLength: 5
+        type: string
+      marital_status:
+        enum:
+        - Single
+        - Married
+        - Divorced
+        - Widowed
+        example: Married
+        type: string
+      nik:
+        example: "3171234567890001"
+        type: string
+      occupation:
+        example: Teacher
+        maxLength: 100
+        type: string
+      payer:
+        allOf:
+        - $ref: '#/definitions/models.Payer'
+        enum:
+        - General
+        - BPJS
+        - Insurance
+        example: BPJS
+      phone:
+        example: "081234567890"
+        type: string
+      religion:
+        example: Islam
+        maxLength: 50
+        type: string
+    required:
+    - birth_date
+    - birth_place
+    - emergency_contact_name
+    - emergency_contact_phone
+    - emergency_contact_relationship
+    - full_name
+    - gender
+    - id_card_address
+    - nik
+    - payer
+    - phone
+    type: object
+  patients.Response:
+    properties:
+      allergies:
+        example: Penicillin, peanuts
+        type: string
+      birth_date:
+        example: "1990-05-17"
+        type: string
+      birth_place:
+        example: Jakarta
+        type: string
+      blood_type:
+        example: O
+        type: string
+      created_at:
+        type: string
+      domicile_address:
+        example: Jl. Mawar No. 9, Depok
+        type: string
+      education:
+        example: Bachelor
+        type: string
+      email:
+        example: siti@example.com
+        type: string
+      emergency_contact_name:
+        example: Budi Santoso
+        type: string
+      emergency_contact_phone:
+        example: "081298765432"
+        type: string
+      emergency_contact_relationship:
+        example: Husband
+        type: string
+      full_name:
+        example: Siti Rahmawati
+        type: string
+      gender:
+        allOf:
+        - $ref: '#/definitions/models.Gender'
+        enum:
+        - Male
+        - Female
+        example: Female
+      id:
+        example: 3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71
+        type: string
+      id_card_address:
+        example: Jl. Melati No. 5, Jakarta Selatan
+        type: string
+      marital_status:
+        example: Married
+        type: string
+      nik:
+        example: "3171234567890001"
+        type: string
+      occupation:
+        example: Teacher
+        type: string
+      payer:
+        allOf:
+        - $ref: '#/definitions/models.Payer'
+        enum:
+        - General
+        - BPJS
+        - Insurance
+        example: BPJS
+      phone:
+        example: "081234567890"
+        type: string
+      religion:
+        example: Islam
+        type: string
+      updated_at:
+        type: string
+    type: object
   roles.CreateRequest:
     properties:
       description:
@@ -263,7 +463,6 @@ definitions:
         example: true
         type: boolean
     type: object
-host: localhost:8080
 info:
   contact: {}
   description: API documentation for SIMRS.
@@ -377,6 +576,247 @@ paths:
       summary: Register a user
       tags:
       - auth
+  /api/v1/patients:
+    get:
+      description: Front Office only. Search by name, NIK or phone; filter by gender
+        and payer.
+      parameters:
+      - description: Search by name, NIK or phone
+        in: query
+        name: search
+        type: string
+      - description: Filter by gender
+        enum:
+        - Male
+        - Female
+        in: query
+        name: gender
+        type: string
+      - description: Filter by payer
+        enum:
+        - General
+        - BPJS
+        - Insurance
+        in: query
+        name: payer
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page (max 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.PaginatedResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/patients.Response'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List patients
+      tags:
+      - patients
+    post:
+      consumes:
+      - application/json
+      description: Front Office only. NIK must be unique and exactly 16 digits.
+      parameters:
+      - description: Patient data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/patients.PatientRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/patients.Response'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Register a patient
+      tags:
+      - patients
+  /api/v1/patients/{id}:
+    delete:
+      description: Front Office only. The record is soft-deleted and its NIK can be
+        registered again.
+      parameters:
+      - description: Patient ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a patient
+      tags:
+      - patients
+    get:
+      description: Front Office only.
+      parameters:
+      - description: Patient ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/patients.Response'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a patient
+      tags:
+      - patients
+    put:
+      consumes:
+      - application/json
+      description: Front Office only. Replaces all editable fields.
+      parameters:
+      - description: Patient ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Patient data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/patients.PatientRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/patients.Response'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a patient
+      tags:
+      - patients
   /api/v1/roles:
     get:
       description: Superadmin only.

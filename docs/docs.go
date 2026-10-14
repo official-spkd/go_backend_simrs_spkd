@@ -195,6 +195,392 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/patients": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Front Office only. Search by name, NIK or phone; filter by gender and payer.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "patients"
+                ],
+                "summary": "List patients",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search by name, NIK or phone",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "Male",
+                            "Female"
+                        ],
+                        "type": "string",
+                        "description": "Filter by gender",
+                        "name": "gender",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "General",
+                            "BPJS",
+                            "Insurance"
+                        ],
+                        "type": "string",
+                        "description": "Filter by payer",
+                        "name": "payer",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Items per page (max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.PaginatedResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/patients.Response"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Front Office only. NIK must be unique and exactly 16 digits.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "patients"
+                ],
+                "summary": "Register a patient",
+                "parameters": [
+                    {
+                        "description": "Patient data",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/patients.PatientRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/patients.Response"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/patients/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Front Office only.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "patients"
+                ],
+                "summary": "Get a patient",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Patient ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/patients.Response"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Front Office only. Replaces all editable fields.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "patients"
+                ],
+                "summary": "Update a patient",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Patient ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Patient data",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/patients.PatientRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/patients.Response"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Front Office only. The record is soft-deleted and its NIK can be registered again.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "patients"
+                ],
+                "summary": "Delete a patient",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Patient ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/roles": {
             "get": {
                 "security": [
@@ -1188,6 +1574,276 @@ const docTemplate = `{
                 }
             }
         },
+        "models.Gender": {
+            "type": "string",
+            "enum": [
+                "Male",
+                "Female"
+            ],
+            "x-enum-varnames": [
+                "GenderMale",
+                "GenderFemale"
+            ]
+        },
+        "models.Payer": {
+            "type": "string",
+            "enum": [
+                "General",
+                "BPJS",
+                "Insurance"
+            ],
+            "x-enum-varnames": [
+                "PayerGeneral",
+                "PayerBPJS",
+                "PayerInsurance"
+            ]
+        },
+        "patients.PatientRequest": {
+            "type": "object",
+            "required": [
+                "birth_date",
+                "birth_place",
+                "emergency_contact_name",
+                "emergency_contact_phone",
+                "emergency_contact_relationship",
+                "full_name",
+                "gender",
+                "id_card_address",
+                "nik",
+                "payer",
+                "phone"
+            ],
+            "properties": {
+                "allergies": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "example": "Penicillin, peanuts"
+                },
+                "birth_date": {
+                    "type": "string",
+                    "example": "1990-05-17"
+                },
+                "birth_place": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "example": "Jakarta"
+                },
+                "blood_type": {
+                    "type": "string",
+                    "enum": [
+                        "A",
+                        "B",
+                        "AB",
+                        "O"
+                    ],
+                    "example": "O"
+                },
+                "domicile_address": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "minLength": 5,
+                    "example": "Jl. Mawar No. 9, Depok"
+                },
+                "education": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "example": "Bachelor"
+                },
+                "email": {
+                    "type": "string",
+                    "maxLength": 150,
+                    "example": "siti@example.com"
+                },
+                "emergency_contact_name": {
+                    "type": "string",
+                    "maxLength": 150,
+                    "minLength": 3,
+                    "example": "Budi Santoso"
+                },
+                "emergency_contact_phone": {
+                    "type": "string",
+                    "example": "081298765432"
+                },
+                "emergency_contact_relationship": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "example": "Husband"
+                },
+                "full_name": {
+                    "type": "string",
+                    "maxLength": 150,
+                    "minLength": 3,
+                    "example": "Siti Rahmawati"
+                },
+                "gender": {
+                    "enum": [
+                        "Male",
+                        "Female"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.Gender"
+                        }
+                    ],
+                    "example": "Female"
+                },
+                "id_card_address": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "minLength": 5,
+                    "example": "Jl. Melati No. 5, Jakarta Selatan"
+                },
+                "marital_status": {
+                    "type": "string",
+                    "enum": [
+                        "Single",
+                        "Married",
+                        "Divorced",
+                        "Widowed"
+                    ],
+                    "example": "Married"
+                },
+                "nik": {
+                    "type": "string",
+                    "example": "3171234567890001"
+                },
+                "occupation": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "example": "Teacher"
+                },
+                "payer": {
+                    "enum": [
+                        "General",
+                        "BPJS",
+                        "Insurance"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.Payer"
+                        }
+                    ],
+                    "example": "BPJS"
+                },
+                "phone": {
+                    "type": "string",
+                    "example": "081234567890"
+                },
+                "religion": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "example": "Islam"
+                }
+            }
+        },
+        "patients.Response": {
+            "type": "object",
+            "properties": {
+                "allergies": {
+                    "type": "string",
+                    "example": "Penicillin, peanuts"
+                },
+                "birth_date": {
+                    "type": "string",
+                    "example": "1990-05-17"
+                },
+                "birth_place": {
+                    "type": "string",
+                    "example": "Jakarta"
+                },
+                "blood_type": {
+                    "type": "string",
+                    "example": "O"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "domicile_address": {
+                    "type": "string",
+                    "example": "Jl. Mawar No. 9, Depok"
+                },
+                "education": {
+                    "type": "string",
+                    "example": "Bachelor"
+                },
+                "email": {
+                    "type": "string",
+                    "example": "siti@example.com"
+                },
+                "emergency_contact_name": {
+                    "type": "string",
+                    "example": "Budi Santoso"
+                },
+                "emergency_contact_phone": {
+                    "type": "string",
+                    "example": "081298765432"
+                },
+                "emergency_contact_relationship": {
+                    "type": "string",
+                    "example": "Husband"
+                },
+                "full_name": {
+                    "type": "string",
+                    "example": "Siti Rahmawati"
+                },
+                "gender": {
+                    "enum": [
+                        "Male",
+                        "Female"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.Gender"
+                        }
+                    ],
+                    "example": "Female"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71"
+                },
+                "id_card_address": {
+                    "type": "string",
+                    "example": "Jl. Melati No. 5, Jakarta Selatan"
+                },
+                "marital_status": {
+                    "type": "string",
+                    "example": "Married"
+                },
+                "nik": {
+                    "type": "string",
+                    "example": "3171234567890001"
+                },
+                "occupation": {
+                    "type": "string",
+                    "example": "Teacher"
+                },
+                "payer": {
+                    "enum": [
+                        "General",
+                        "BPJS",
+                        "Insurance"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.Payer"
+                        }
+                    ],
+                    "example": "BPJS"
+                },
+                "phone": {
+                    "type": "string",
+                    "example": "081234567890"
+                },
+                "religion": {
+                    "type": "string",
+                    "example": "Islam"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
         "roles.CreateRequest": {
             "type": "object",
             "required": [
@@ -1458,7 +2114,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "localhost:8080",
+	Host:             "",
 	BasePath:         "/",
 	Schemes:          []string{"http", "https"},
 	Title:            "SIMRS API",

@@ -12,7 +12,6 @@ import (
 // @title						SIMRS API
 // @version						1.0
 // @description					API documentation for SIMRS.
-// @host						localhost:8080
 // @BasePath					/
 // @schemes						http https
 // @securityDefinitions.apikey	BearerAuth
