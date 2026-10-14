@@ -103,6 +103,21 @@ Dependencies flow one way: `route → handler → service → repository → dat
 - **Every response uses the envelope** `{success, message, data}`. Send success with `utils.Success(c, status, message, data)` and failures with `utils.AbortWithError(c, status, message)` (`success: false`, `data: null`). Never call `c.JSON` / `c.Status` directly in handlers. Messages are English, e.g. `"User updated successfully"`.
 - Map unknown errors to `500 "internal server error"`; never expose raw database errors.
 - List endpoints are paginated with `utils.ParsePagination` (`page`, `limit`, max 100) and respond with `utils.SuccessPaginated(c, message, data, utils.NewPagination(page, limit, total))`, which adds `pagination` (`current_page`, `items_per_page`, `total_items`, `total_pages`, `has_prev_page`, `has_next_page`, `prev_page`, `next_page`) beside `data`. Escape `LIKE` wildcards in search input.
+Response shapes (`data` is `null` when there is nothing to return; `pagination` only on lists):
+
+```json
+{ "success": true, "message": "User retrieved successfully", "data": { } }
+
+{ "success": true, "message": "Users retrieved successfully",
+  "pagination": { "current_page": 1, "items_per_page": 20, "total_items": 42, "total_pages": 3,
+                  "has_prev_page": false, "has_next_page": true, "prev_page": null, "next_page": 2 },
+  "data": [ ] }
+
+{ "success": false, "message": "user not found", "data": null }
+```
+
+Defaults: `page=1`, `limit=20` (max 100). `prev_page` / `next_page` are `null` at the first / last page.
+
 - Never return `PasswordHash` or other secrets. Use response DTOs, not raw GORM models, for models with sensitive fields (User always).
 - Request DTOs use `binding` tags with sensible `max` lengths. Normalize input in the service (trim; lowercase emails).
 
