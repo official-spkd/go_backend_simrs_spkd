@@ -72,7 +72,6 @@ func apply(p *models.Poli, req PoliRequest) {
 	p.PrefixCode = strings.ToUpper(strings.TrimSpace(req.PrefixCode))
 	p.Name = strings.TrimSpace(req.Name)
 	p.Room = strings.TrimSpace(req.Room)
-	p.DoctorCount = *req.DoctorCount
 	if req.IsActive != nil {
 		p.IsActive = *req.IsActive
 	}

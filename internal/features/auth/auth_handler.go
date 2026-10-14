@@ -30,8 +30,7 @@ func NewHandler(service Service) *Handler {
 // @Router		/api/v1/auth/login [post]
 func (h *Handler) Login(c *gin.Context) {
 	var req LoginRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.AbortWithError(c, http.StatusBadRequest, err.Error())
+	if !utils.BindJSON(c, &req) {
 		return
 	}
 
@@ -44,7 +43,7 @@ func (h *Handler) Login(c *gin.Context) {
 }
 
 // @Summary		Register a user
-// @Description	Open for the very first account (becomes superadmin). Afterwards only a superadmin can register accounts.
+// @Description	Open for the very first account (becomes superadmin). Afterwards only a superadmin can register accounts. For role doctor, sip_number, str_number and poli_id (an active poli from GET /polis) are required; for other roles they are rejected.
 // @Tags			auth
 // @Accept			json
 // @Produce		json
@@ -58,8 +57,7 @@ func (h *Handler) Login(c *gin.Context) {
 // @Router			/api/v1/auth/register [post]
 func (h *Handler) Register(c *gin.Context) {
 	var req RegisterRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.AbortWithError(c, http.StatusBadRequest, err.Error())
+	if !utils.BindJSON(c, &req) {
 		return
 	}
 
@@ -100,7 +98,8 @@ func (h *Handler) fail(c *gin.Context, err error) {
 		utils.AbortWithError(c, http.StatusUnauthorized, err.Error())
 	case errors.Is(err, ErrInactiveAccount), errors.Is(err, ErrForbidden):
 		utils.AbortWithError(c, http.StatusForbidden, err.Error())
-	case errors.Is(err, ErrRoleRequired), errors.Is(err, ErrInvalidRole):
+	case errors.Is(err, ErrRoleRequired), errors.Is(err, ErrInvalidRole),
+		errors.Is(err, ErrPoliNotFound), errors.Is(err, ErrPoliInactive):
 		utils.AbortWithError(c, http.StatusBadRequest, err.Error())
 	case errors.Is(err, ErrAlreadyExists):
 		utils.AbortWithError(c, http.StatusConflict, err.Error())

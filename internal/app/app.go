@@ -43,12 +43,12 @@ func New(ctx context.Context, cfg *config.Config, db *gorm.DB) (*gin.Engine, err
 		return nil, fmt.Errorf("seed roles: %w", err)
 	}
 
-	authSvc := auth.NewService(auth.NewRepository(db), roleSvc, tokens)
+	poliSvc := polis.NewService(polis.NewRepository(db))
+	authSvc := auth.NewService(auth.NewRepository(db), roleSvc, poliSvc, tokens)
 
-	userSvc := users.NewService(users.NewRepository(db), roleSvc)
+	userSvc := users.NewService(users.NewRepository(db), roleSvc, poliSvc)
 	patientSvc := patients.NewService(patients.NewRepository(db))
 	visitSvc := visits.NewService(visits.NewRepository(db), patientSvc)
-	poliSvc := polis.NewService(polis.NewRepository(db))
 	queueSvc := queues.NewService(queues.NewRepository(db))
 	if err := queueSvc.SeedCounters(ctx); err != nil {
 		return nil, fmt.Errorf("seed counters: %w", err)

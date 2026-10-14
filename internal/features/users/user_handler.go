@@ -82,7 +82,7 @@ func (h *Handler) Get(c *gin.Context) {
 }
 
 // @Summary		Update a user's profile
-// @Description	Superadmin only. Changes name, NIP and email.
+// @Description	Superadmin only. Changes name, NIP and email. For doctors, sip_number, str_number and poli_id may also be sent (only the fields to change); moving a doctor to another poli updates both polis' doctor counts.
 // @Tags			users
 // @Accept			json
 // @Produce		json
@@ -102,8 +102,7 @@ func (h *Handler) Update(c *gin.Context) {
 		return
 	}
 	var req UpdateRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.AbortWithError(c, http.StatusBadRequest, err.Error())
+	if !utils.BindJSON(c, &req) {
 		return
 	}
 	u, err := h.service.Update(c.Request.Context(), id, req)
@@ -115,7 +114,7 @@ func (h *Handler) Update(c *gin.Context) {
 }
 
 // @Summary		Change a user's role
-// @Description	Superadmin only. You cannot change your own role.
+// @Description	Superadmin only. You cannot change your own role. Becoming a doctor requires sip_number, str_number and poli_id; leaving the doctor role clears them. The doctor count of the affected polis is updated automatically.
 // @Tags			users
 // @Accept			json
 // @Produce		json
@@ -134,11 +133,10 @@ func (h *Handler) UpdateRole(c *gin.Context) {
 		return
 	}
 	var req UpdateRoleRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.AbortWithError(c, http.StatusBadRequest, err.Error())
+	if !utils.BindJSON(c, &req) {
 		return
 	}
-	u, err := h.service.UpdateRole(c.Request.Context(), actorID, id, req.Role)
+	u, err := h.service.UpdateRole(c.Request.Context(), actorID, id, req)
 	if err != nil {
 		h.fail(c, err)
 		return
@@ -147,7 +145,7 @@ func (h *Handler) UpdateRole(c *gin.Context) {
 }
 
 // @Summary		Activate or deactivate a user
-// @Description	Superadmin only. You cannot change your own status.
+// @Description	Superadmin only. You cannot change your own status. Deactivating a doctor lowers their poli's doctor count; activating raises it.
 // @Tags			users
 // @Accept			json
 // @Produce		json
@@ -166,8 +164,7 @@ func (h *Handler) UpdateStatus(c *gin.Context) {
 		return
 	}
 	var req UpdateStatusRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.AbortWithError(c, http.StatusBadRequest, err.Error())
+	if !utils.BindJSON(c, &req) {
 		return
 	}
 	u, err := h.service.UpdateStatus(c.Request.Context(), actorID, id, *req.IsActive)
@@ -197,8 +194,7 @@ func (h *Handler) ResetPassword(c *gin.Context) {
 		return
 	}
 	var req ResetPasswordRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.AbortWithError(c, http.StatusBadRequest, err.Error())
+	if !utils.BindJSON(c, &req) {
 		return
 	}
 	if err := h.service.ResetPassword(c.Request.Context(), id, req.NewPassword); err != nil {
@@ -209,7 +205,7 @@ func (h *Handler) ResetPassword(c *gin.Context) {
 }
 
 // @Summary		Delete a user
-// @Description	Superadmin only. You cannot delete your own account.
+// @Description	Superadmin only. You cannot delete your own account. Deleting a doctor lowers their poli's doctor count.
 // @Tags			users
 // @Security		BearerAuth
 // @Param			id	path	string	true	"User ID"
@@ -248,7 +244,8 @@ func (h *Handler) fail(c *gin.Context, err error) {
 		utils.AbortWithError(c, http.StatusNotFound, err.Error())
 	case errors.Is(err, ErrAlreadyExists):
 		utils.AbortWithError(c, http.StatusConflict, err.Error())
-	case errors.Is(err, ErrInvalidRole):
+	case errors.Is(err, ErrInvalidRole), errors.Is(err, ErrNotDoctor),
+		errors.Is(err, ErrPoliNotFound), errors.Is(err, ErrPoliInactive):
 		utils.AbortWithError(c, http.StatusBadRequest, err.Error())
 	case errors.Is(err, ErrSelfAction):
 		utils.AbortWithError(c, http.StatusForbidden, err.Error())

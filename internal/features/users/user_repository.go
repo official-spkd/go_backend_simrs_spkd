@@ -7,13 +7,15 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
+	"gin-quickstart/internal/platform/database"
 	"gin-quickstart/internal/platform/models"
 )
 
 var (
 	ErrNotFound      = errors.New("user not found")
-	ErrAlreadyExists = errors.New("nip or email already registered")
+	ErrAlreadyExists = errors.New("nip, email, SIP number or STR number is already registered")
 )
 
 type Repository interface {
@@ -32,7 +34,7 @@ func NewRepository(db *gorm.DB) Repository {
 }
 
 func (r *repository) List(ctx context.Context, q ListQuery) ([]models.User, int64, error) {
-	tx := r.db.WithContext(ctx).Model(&models.User{}).Joins("Role")
+	tx := r.db.WithContext(ctx).Model(&models.User{}).Joins("Role").Preload("Poli")
 
 	if q.Search != "" {
 		like := "%" + escapeLike(strings.ToLower(q.Search)) + "%"
@@ -62,7 +64,7 @@ func (r *repository) List(ctx context.Context, q ListQuery) ([]models.User, int6
 
 func (r *repository) FindByID(ctx context.Context, id uuid.UUID) (*models.User, error) {
 	var u models.User
-	err := r.db.WithContext(ctx).Preload("Role").First(&u, "users.id = ?", id).Error
+	err := r.db.WithContext(ctx).Preload("Role").Preload("Poli").First(&u, "users.id = ?", id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrNotFound
 	}
@@ -72,29 +74,69 @@ func (r *repository) FindByID(ctx context.Context, id uuid.UUID) (*models.User, 
 	return &u, nil
 }
 
+// Update applies the column changes and keeps doctor_count of the affected polis in sync,
+// all in one transaction.
 func (r *repository) Update(ctx context.Context, id uuid.UUID, fields map[string]any) error {
-	res := r.db.WithContext(ctx).Model(&models.User{}).Where("id = ?", id).Updates(fields)
-	if errors.Is(res.Error, gorm.ErrDuplicatedKey) {
-		return ErrAlreadyExists
-	}
-	if res.Error != nil {
-		return res.Error
-	}
-	if res.RowsAffected == 0 {
-		return ErrNotFound
-	}
-	return nil
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		before, err := lockPoliID(tx, id)
+		if err != nil {
+			return err
+		}
+
+		err = tx.Model(&models.User{}).Where("id = ?", id).Updates(fields).Error
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return ErrAlreadyExists
+		}
+		if err != nil {
+			return err
+		}
+
+		after, err := lockPoliID(tx, id)
+		if err != nil {
+			return err
+		}
+		return database.RecountPoliDoctors(tx, poliSet(before, after)...)
+	})
 }
 
+// Delete removes the user and refreshes doctor_count of the poli they worked in.
 func (r *repository) Delete(ctx context.Context, id uuid.UUID) error {
-	res := r.db.WithContext(ctx).Delete(&models.User{}, "id = ?", id)
-	if res.Error != nil {
-		return res.Error
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		poliID, err := lockPoliID(tx, id)
+		if err != nil {
+			return err
+		}
+		if err := tx.Delete(&models.User{}, "id = ?", id).Error; err != nil {
+			return err
+		}
+		return database.RecountPoliDoctors(tx, poliSet(poliID)...)
+	})
+}
+
+// lockPoliID locks the user row and returns the poli they are assigned to (nil if none).
+func lockPoliID(tx *gorm.DB, id uuid.UUID) (*uuid.UUID, error) {
+	var u models.User
+	err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Select("id", "poli_id").First(&u, "id = ?", id).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, ErrNotFound
 	}
-	if res.RowsAffected == 0 {
-		return ErrNotFound
+	if err != nil {
+		return nil, err
 	}
-	return nil
+	return u.PoliID, nil
+}
+
+// poliSet returns the distinct non-nil poli IDs.
+func poliSet(ids ...*uuid.UUID) []uuid.UUID {
+	seen := make(map[uuid.UUID]bool, len(ids))
+	out := make([]uuid.UUID, 0, len(ids))
+	for _, id := range ids {
+		if id != nil && !seen[*id] {
+			seen[*id] = true
+			out = append(out, *id)
+		}
+	}
+	return out
 }
 
 // escapeLike neutralizes LIKE wildcards in user input.

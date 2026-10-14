@@ -6,6 +6,7 @@ import (
 	"gorm.io/gorm"
 
 	"gin-quickstart/internal/features/roles"
+	"gin-quickstart/internal/platform/database"
 	"gin-quickstart/internal/platform/models"
 )
 
@@ -23,9 +24,27 @@ func migrate(db *gorm.DB) error {
 		return fmt.Errorf("create poli name index: %w", err)
 	}
 
+	// Doctor data used to live in a separate doctor_profiles table. Copy it onto users once.
+	// The old table is left in place; drop it manually when you no longer need it.
+	err := db.Exec(`DO $$ BEGIN
+		IF to_regclass('public.doctor_profiles') IS NOT NULL THEN
+			UPDATE users u SET sip_number = d.sip_number, str_number = d.str_number, poli_id = d.poli_id
+			FROM doctor_profiles d, roles r
+			WHERE d.user_id = u.id AND u.poli_id IS NULL AND r.id = u.role_id AND r.name = 'doctor';
+		END IF;
+	END $$`).Error
+	if err != nil {
+		return fmt.Errorf("copy doctor profiles: %w", err)
+	}
+
+	// doctor_count is derived from active doctors, so refresh it for every poli.
+	if err := database.RecountAllPoliDoctors(db); err != nil {
+		return fmt.Errorf("recount poli doctors: %w", err)
+	}
+
 	// Visits created before penjamin used the lowercase vocabulary stored General/BPJS/Insurance.
 	// Idempotent: rows already converted are left untouched.
-	err := db.Exec(`UPDATE visits SET payer = CASE payer
+	err = db.Exec(`UPDATE visits SET payer = CASE payer
 		WHEN 'General' THEN 'umum' WHEN 'BPJS' THEN 'bpjs' WHEN 'Insurance' THEN 'asuransi' END
 		WHERE payer IN ('General', 'BPJS', 'Insurance')`).Error
 	if err != nil {

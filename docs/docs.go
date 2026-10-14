@@ -127,7 +127,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Open for the very first account (becomes superadmin). Afterwards only a superadmin can register accounts.",
+                "description": "Open for the very first account (becomes superadmin). Afterwards only a superadmin can register accounts. For role doctor, sip_number, str_number and poli_id (an active poli from GET /polis) are required; for other roles they are rejected.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1441,7 +1441,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Superadmin only. Existing visits keep their clinic name, so history is not affected.",
+                "description": "Superadmin only. A poli that doctors are assigned to cannot be deleted (409). Existing visits keep their clinic name, so history is not affected.",
                 "produces": [
                     "application/json"
                 ],
@@ -1485,6 +1485,12 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
                         "schema": {
                             "$ref": "#/definitions/utils.ErrorResponse"
                         }
@@ -2092,7 +2098,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Superadmin only. Changes name, NIP and email.",
+                "description": "Superadmin only. Changes name, NIP and email. For doctors, sip_number, str_number and poli_id may also be sent (only the fields to change); moving a doctor to another poli updates both polis' doctor counts.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2178,7 +2184,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Superadmin only. You cannot delete your own account.",
+                "description": "Superadmin only. You cannot delete your own account. Deleting a doctor lowers their poli's doctor count.",
                 "tags": [
                     "users"
                 ],
@@ -2300,7 +2306,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Superadmin only. You cannot change your own role.",
+                "description": "Superadmin only. You cannot change your own role. Becoming a doctor requires sip_number, str_number and poli_id; leaving the doctor role clears them. The doctor count of the affected polis is updated automatically.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2382,7 +2388,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Superadmin only. You cannot change your own status.",
+                "description": "Superadmin only. You cannot change your own status. Deactivating a doctor lowers their poli's doctor count; activating raises it.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2775,6 +2781,22 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "auth.DoctorProfileResponse": {
+            "type": "object",
+            "properties": {
+                "poli": {
+                    "$ref": "#/definitions/auth.PoliRef"
+                },
+                "sip_number": {
+                    "type": "string",
+                    "example": "446/001/SIP-D/2026"
+                },
+                "str_number": {
+                    "type": "string",
+                    "example": "3111100220123456"
+                }
+            }
+        },
         "auth.LoginRequest": {
             "type": "object",
             "required": [
@@ -2813,6 +2835,27 @@ const docTemplate = `{
                 }
             }
         },
+        "auth.PoliRef": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "example": "3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "General Clinic"
+                },
+                "prefix_code": {
+                    "type": "string",
+                    "example": "UMUM"
+                },
+                "room": {
+                    "type": "string",
+                    "example": "Room 101"
+                }
+            }
+        },
         "auth.RegisterRequest": {
             "type": "object",
             "required": [
@@ -2843,9 +2886,25 @@ const docTemplate = `{
                     "minLength": 8,
                     "example": "s3cretPass!"
                 },
+                "poli_id": {
+                    "type": "string",
+                    "example": "3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71"
+                },
                 "role": {
                     "type": "string",
                     "example": "doctor"
+                },
+                "sip_number": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 5,
+                    "example": "446/001/SIP-D/2026"
+                },
+                "str_number": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 5,
+                    "example": "3111100220123456"
                 }
             }
         },
@@ -2854,6 +2913,14 @@ const docTemplate = `{
             "properties": {
                 "created_at": {
                     "type": "string"
+                },
+                "doctor_profile": {
+                    "description": "Present only for doctors.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/auth.DoctorProfileResponse"
+                        }
+                    ]
                 },
                 "email": {
                     "type": "string",
@@ -3242,18 +3309,11 @@ const docTemplate = `{
         "polis.PoliRequest": {
             "type": "object",
             "required": [
-                "doctor_count",
                 "name",
                 "prefix_code",
                 "room"
             ],
             "properties": {
-                "doctor_count": {
-                    "type": "integer",
-                    "maximum": 999,
-                    "minimum": 0,
-                    "example": 3
-                },
                 "is_active": {
                     "type": "boolean",
                     "example": true
@@ -3284,6 +3344,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "doctor_count": {
+                    "description": "read-only",
                     "type": "integer",
                     "example": 3
                 },
@@ -3595,6 +3656,43 @@ const docTemplate = `{
                 }
             }
         },
+        "users.DoctorProfileResponse": {
+            "type": "object",
+            "properties": {
+                "poli": {
+                    "$ref": "#/definitions/users.PoliRef"
+                },
+                "sip_number": {
+                    "type": "string",
+                    "example": "446/001/SIP-D/2026"
+                },
+                "str_number": {
+                    "type": "string",
+                    "example": "3111100220123456"
+                }
+            }
+        },
+        "users.PoliRef": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "example": "3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "General Clinic"
+                },
+                "prefix_code": {
+                    "type": "string",
+                    "example": "UMUM"
+                },
+                "room": {
+                    "type": "string",
+                    "example": "Room 101"
+                }
+            }
+        },
         "users.ResetPasswordRequest": {
             "type": "object",
             "required": [
@@ -3614,6 +3712,14 @@ const docTemplate = `{
             "properties": {
                 "created_at": {
                     "type": "string"
+                },
+                "doctor_profile": {
+                    "description": "Present only for doctors.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/users.DoctorProfileResponse"
+                        }
+                    ]
                 },
                 "email": {
                     "type": "string",
@@ -3666,6 +3772,23 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 30,
                     "example": "198001012010011001"
+                },
+                "poli_id": {
+                    "type": "string",
+                    "example": "3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71"
+                },
+                "sip_number": {
+                    "description": "Doctors only; send just the fields to change. Rejected for any other role.",
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 5,
+                    "example": "446/001/SIP-D/2026"
+                },
+                "str_number": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 5,
+                    "example": "3111100220123456"
                 }
             }
         },
@@ -3675,9 +3798,25 @@ const docTemplate = `{
                 "role"
             ],
             "properties": {
+                "poli_id": {
+                    "type": "string",
+                    "example": "3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71"
+                },
                 "role": {
                     "type": "string",
-                    "example": "pharmacist"
+                    "example": "doctor"
+                },
+                "sip_number": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 5,
+                    "example": "446/001/SIP-D/2026"
+                },
+                "str_number": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 5,
+                    "example": "3111100220123456"
                 }
             }
         },

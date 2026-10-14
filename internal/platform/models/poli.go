@@ -1,10 +1,14 @@
 package models
 
 import (
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
 )
+
+// ErrPoliNotFound is shared so other features can detect a missing poli without importing the polis feature.
+var ErrPoliNotFound = errors.New("poli not found")
 
 // Poli is an outpatient clinic.
 type Poli struct {

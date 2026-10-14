@@ -22,12 +22,19 @@ var (
 	ErrForbidden          = errors.New("only superadmin can register new users")
 	ErrRoleRequired       = errors.New("role is required")
 	ErrInvalidRole        = errors.New("role does not exist")
+	ErrPoliNotFound       = models.ErrPoliNotFound
+	ErrPoliInactive       = errors.New("poli is not active")
 )
 
 var dummyHash, _ = bcrypt.GenerateFromPassword([]byte("dummy-password"), bcrypt.DefaultCost)
 
 type RoleFinder interface {
 	FindByName(ctx context.Context, name string) (*roles.Role, error)
+}
+
+// PoliFinder is satisfied by the polis feature's service.
+type PoliFinder interface {
+	Get(ctx context.Context, id uuid.UUID) (*models.Poli, error)
 }
 
 type Service interface {
@@ -39,11 +46,12 @@ type Service interface {
 type service struct {
 	repo   Repository
 	roles  RoleFinder
+	polis  PoliFinder
 	tokens *utils.TokenManager
 }
 
-func NewService(repo Repository, roles RoleFinder, tokens *utils.TokenManager) Service {
-	return &service{repo: repo, roles: roles, tokens: tokens}
+func NewService(repo Repository, roles RoleFinder, polis PoliFinder, tokens *utils.TokenManager) Service {
+	return &service{repo: repo, roles: roles, polis: polis, tokens: tokens}
 }
 
 func (s *service) Login(ctx context.Context, req LoginRequest) (*LoginResponse, error) {
@@ -107,6 +115,13 @@ func (s *service) Register(ctx context.Context, req RegisterRequest, actor *util
 		return nil, err
 	}
 
+	var profile *doctorFields
+	if role.Name == roles.Doctor {
+		if profile, err = s.doctorFields(ctx, req); err != nil {
+			return nil, err
+		}
+	}
+
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, fmt.Errorf("hash password: %w", err)
@@ -120,6 +135,10 @@ func (s *service) Register(ctx context.Context, req RegisterRequest, actor *util
 		RoleID:       role.ID,
 		Role:         *role,
 		IsActive:     true,
+	}
+	if profile != nil {
+		u.SIPNumber, u.STRNumber = &profile.sip, &profile.str
+		u.PoliID, u.Poli = &profile.poli.ID, profile.poli
 	}
 	if err := s.repo.Create(ctx, u); err != nil {
 		return nil, err
@@ -136,4 +155,29 @@ func (s *service) Me(ctx context.Context, userID uuid.UUID) (*models.User, error
 		return nil, ErrInactiveAccount
 	}
 	return u, nil
+}
+
+type doctorFields struct {
+	sip, str string
+	poli     *models.Poli
+}
+
+// doctorFields validates the doctor-only fields and resolves the poli they are assigned to.
+func (s *service) doctorFields(ctx context.Context, req RegisterRequest) (*doctorFields, error) {
+	poliID, err := uuid.Parse(req.PoliID)
+	if err != nil {
+		return nil, ErrPoliNotFound
+	}
+	poli, err := s.polis.Get(ctx, poliID)
+	if err != nil {
+		return nil, err
+	}
+	if !poli.IsActive {
+		return nil, ErrPoliInactive
+	}
+	return &doctorFields{
+		sip:  strings.TrimSpace(req.SIPNumber),
+		str:  strings.TrimSpace(req.STRNumber),
+		poli: poli,
+	}, nil
 }

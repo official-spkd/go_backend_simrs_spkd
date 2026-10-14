@@ -129,7 +129,7 @@ func (h *Handler) Update(c *gin.Context) {
 }
 
 // @Summary		Delete a poli
-// @Description	Superadmin only. Existing visits keep their clinic name, so history is not affected.
+// @Description	Superadmin only. A poli that doctors are assigned to cannot be deleted (409). Existing visits keep their clinic name, so history is not affected.
 // @Tags			polis
 // @Produce		json
 // @Security		BearerAuth
@@ -139,6 +139,7 @@ func (h *Handler) Update(c *gin.Context) {
 // @Failure		401	{object}	utils.ErrorResponse
 // @Failure		403	{object}	utils.ErrorResponse
 // @Failure		404	{object}	utils.ErrorResponse
+// @Failure		409	{object}	utils.ErrorResponse
 // @Router			/api/v1/polis/{id} [delete]
 func (h *Handler) Delete(c *gin.Context) {
 	id, ok := utils.ParseUUIDParam(c, "id")
@@ -156,7 +157,7 @@ func (h *Handler) fail(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, ErrNotFound):
 		utils.AbortWithError(c, http.StatusNotFound, err.Error())
-	case errors.Is(err, ErrAlreadyExists):
+	case errors.Is(err, ErrAlreadyExists), errors.Is(err, ErrInUse):
 		utils.AbortWithError(c, http.StatusConflict, err.Error())
 	default:
 		utils.AbortWithError(c, http.StatusInternalServerError, "internal server error")

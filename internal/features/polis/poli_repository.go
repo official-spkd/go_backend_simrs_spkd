@@ -12,7 +12,8 @@ import (
 )
 
 var (
-	ErrNotFound      = errors.New("poli not found")
+	ErrNotFound      = models.ErrPoliNotFound
+	ErrInUse         = errors.New("poli is still assigned to doctors")
 	ErrAlreadyExists = errors.New("a poli with this prefix code or name already exists")
 )
 
@@ -72,11 +73,14 @@ func (r *repository) List(ctx context.Context, q ListQuery) ([]models.Poli, int6
 }
 
 func (r *repository) Update(ctx context.Context, p *models.Poli) error {
-	return translate(r.db.WithContext(ctx).Save(p).Error)
+	return translate(r.db.WithContext(ctx).Omit("DoctorCount").Save(p).Error)
 }
 
 func (r *repository) Delete(ctx context.Context, id uuid.UUID) error {
 	res := r.db.WithContext(ctx).Delete(&models.Poli{}, "id = ?", id)
+	if errors.Is(res.Error, gorm.ErrForeignKeyViolated) {
+		return ErrInUse
+	}
 	if res.Error != nil {
 		return res.Error
 	}

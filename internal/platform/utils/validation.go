@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"regexp"
 	"strings"
 	"unicode"
 
@@ -12,6 +13,9 @@ import (
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
 )
+
+// License numbers (SIP, STR) mix digits, letters and the separators . / -
+var licensePattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9./-]*$`)
 
 // InitValidation makes validation errors refer to JSON field names instead of Go field names.
 func InitValidation() {
@@ -21,6 +25,9 @@ func InitValidation() {
 	}
 	_ = v.RegisterValidation("notblank", func(fl validator.FieldLevel) bool {
 		return strings.TrimSpace(fl.Field().String()) != ""
+	})
+	_ = v.RegisterValidation("license_number", func(fl validator.FieldLevel) bool {
+		return licensePattern.MatchString(fl.Field().String())
 	})
 	v.RegisterTagNameFunc(func(f reflect.StructField) string {
 		name, _, _ := strings.Cut(f.Tag.Get("json"), ",")
@@ -97,6 +104,8 @@ func fieldMessage(fe validator.FieldError) string {
 		return field + " is only allowed when " + condition(fe.Param())
 	case "bpjs_id":
 		return field + " must be a 13-digit BPJS number or a 16-digit NIK"
+	case "license_number":
+		return field + " may only contain letters, digits and . / -"
 	case "alpha":
 		return field + " may only contain letters"
 	case "lte":
