@@ -97,6 +97,10 @@ func fieldMessage(fe validator.FieldError) string {
 		return field + " is only allowed when " + condition(fe.Param())
 	case "bpjs_id":
 		return field + " must be a 13-digit BPJS number or a 16-digit NIK"
+	case "alpha":
+		return field + " may only contain letters"
+	case "lte":
+		return fmt.Sprintf("%s must be at most %s", field, fe.Param())
 	case "gte":
 		return fmt.Sprintf("%s must be at least %s", field, fe.Param())
 	case "notblank":

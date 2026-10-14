@@ -347,6 +347,61 @@ definitions:
       updated_at:
         type: string
     type: object
+  polis.PoliRequest:
+    properties:
+      doctor_count:
+        example: 3
+        maximum: 999
+        minimum: 0
+        type: integer
+      is_active:
+        example: true
+        type: boolean
+      name:
+        example: General Clinic
+        maxLength: 100
+        minLength: 3
+        type: string
+      prefix_code:
+        example: UMUM
+        maxLength: 5
+        minLength: 1
+        type: string
+      room:
+        example: Room 101
+        maxLength: 100
+        type: string
+    required:
+    - doctor_count
+    - name
+    - prefix_code
+    - room
+    type: object
+  polis.Response:
+    properties:
+      created_at:
+        type: string
+      doctor_count:
+        example: 3
+        type: integer
+      id:
+        example: 3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71
+        type: string
+      is_active:
+        example: true
+        type: boolean
+      name:
+        example: General Clinic
+        type: string
+      prefix_code:
+        example: UMUM
+        type: string
+      room:
+        example: Room 101
+        type: string
+      updated_at:
+        type: string
+    type: object
   queues.CounterRef:
     properties:
       id:
@@ -1587,6 +1642,230 @@ paths:
       summary: Update a patient
       tags:
       - patients
+  /api/v1/polis:
+    get:
+      description: Any signed-in user, so it can feed clinic dropdowns (use is_active=true
+        for selectable clinics). Search by name, prefix code or room; filter by status.
+      parameters:
+      - description: Search by name, prefix code or room
+        in: query
+        name: search
+        type: string
+      - description: Filter by status
+        in: query
+        name: is_active
+        type: boolean
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page (max 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.PaginatedResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/polis.Response'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List polis
+      tags:
+      - polis
+    post:
+      consumes:
+      - application/json
+      description: Superadmin only. The prefix code (letters only, up to 5) is stored
+        in uppercase and must be unique, as must the name.
+      parameters:
+      - description: Poli data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/polis.PoliRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/polis.Response'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a poli
+      tags:
+      - polis
+  /api/v1/polis/{id}:
+    delete:
+      description: Superadmin only. Existing visits keep their clinic name, so history
+        is not affected.
+      parameters:
+      - description: Poli ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a poli
+      tags:
+      - polis
+    get:
+      description: Any signed-in user.
+      parameters:
+      - description: Poli ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/polis.Response'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a poli
+      tags:
+      - polis
+    put:
+      consumes:
+      - application/json
+      description: Superadmin only. Replaces all editable fields; a missing is_active
+        keeps the current status.
+      parameters:
+      - description: Poli ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Poli data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/polis.PoliRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/polis.Response'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a poli
+      tags:
+      - polis
   /api/v1/queues:
     get:
       description: Front Office only. Queues of one date (default today) in call order.

@@ -14,8 +14,13 @@ func migrate(db *gorm.DB) error {
 	if err := db.Exec("CREATE SEQUENCE IF NOT EXISTS patient_medical_record_number_seq").Error; err != nil {
 		return fmt.Errorf("create sequence: %w", err)
 	}
-	if err := db.AutoMigrate(&roles.Role{}, &models.User{}, &models.Patient{}, &models.Visit{}, &models.Counter{}, &models.Queue{}); err != nil {
+	if err := db.AutoMigrate(&roles.Role{}, &models.User{}, &models.Patient{}, &models.Visit{}, &models.Counter{}, &models.Queue{}, &models.Poli{}); err != nil {
 		return fmt.Errorf("migrate: %w", err)
+	}
+
+	// GORM tags cannot express an expression index: names are unique regardless of case.
+	if err := db.Exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_polis_name_lower ON polis (LOWER(name))").Error; err != nil {
+		return fmt.Errorf("create poli name index: %w", err)
 	}
 
 	// Visits created before penjamin used the lowercase vocabulary stored General/BPJS/Insurance.
