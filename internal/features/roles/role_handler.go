@@ -22,9 +22,9 @@ func NewHandler(service Service) *Handler {
 // @Tags		roles
 // @Produce	json
 // @Security	BearerAuth
-// @Success	200	{array}	Role
-// @Failure	401	{object}	utils.ErrorBody
-// @Failure	403	{object}	utils.ErrorBody
+// @Success	200	{object}	utils.Response{data=[]Role}
+// @Failure	401	{object}	utils.ErrorResponse
+// @Failure	403	{object}	utils.ErrorResponse
 // @Router		/api/v1/roles [get]
 func (h *Handler) List(c *gin.Context) {
 	out, err := h.service.List(c.Request.Context())
@@ -32,7 +32,7 @@ func (h *Handler) List(c *gin.Context) {
 		h.fail(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, out)
+	utils.Success(c, http.StatusOK, "Roles retrieved successfully", out)
 }
 
 // @Summary	Get a role
@@ -41,11 +41,11 @@ func (h *Handler) List(c *gin.Context) {
 // @Produce	json
 // @Param		id	path		string	true	"Role ID"
 // @Security	BearerAuth
-// @Success	200	{object}	Role
-// @Failure	400	{object}	utils.ErrorBody
-// @Failure	401	{object}	utils.ErrorBody
-// @Failure	403	{object}	utils.ErrorBody
-// @Failure	404	{object}	utils.ErrorBody
+// @Success	200	{object}	utils.Response{data=Role}
+// @Failure	400	{object}	utils.ErrorResponse
+// @Failure	401	{object}	utils.ErrorResponse
+// @Failure	403	{object}	utils.ErrorResponse
+// @Failure	404	{object}	utils.ErrorResponse
 // @Router		/api/v1/roles/{id} [get]
 func (h *Handler) Get(c *gin.Context) {
 	id, ok := utils.ParseUUIDParam(c, "id")
@@ -57,7 +57,7 @@ func (h *Handler) Get(c *gin.Context) {
 		h.fail(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, role)
+	utils.Success(c, http.StatusOK, "Role retrieved successfully", role)
 }
 
 // @Summary	Create a role
@@ -67,11 +67,11 @@ func (h *Handler) Get(c *gin.Context) {
 // @Produce	json
 // @Param		body	body		CreateRequest	true	"Role data"
 // @Security	BearerAuth
-// @Success	201		{object}	Role
-// @Failure	400		{object}	utils.ErrorBody
-// @Failure	401	{object}	utils.ErrorBody
-// @Failure	403	{object}	utils.ErrorBody
-// @Failure	409		{object}	utils.ErrorBody
+// @Success	201	{object}	utils.Response{data=Role}
+// @Failure	400		{object}	utils.ErrorResponse
+// @Failure	401	{object}	utils.ErrorResponse
+// @Failure	403	{object}	utils.ErrorResponse
+// @Failure	409		{object}	utils.ErrorResponse
 // @Router		/api/v1/roles [post]
 func (h *Handler) Create(c *gin.Context) {
 	var req CreateRequest
@@ -84,7 +84,7 @@ func (h *Handler) Create(c *gin.Context) {
 		h.fail(c, err)
 		return
 	}
-	c.JSON(http.StatusCreated, role)
+	utils.Success(c, http.StatusCreated, "Role created successfully", role)
 }
 
 // @Summary	Update a role's display name and description
@@ -95,11 +95,11 @@ func (h *Handler) Create(c *gin.Context) {
 // @Param		id		path		string			true	"Role ID"
 // @Param		body	body		UpdateRequest	true	"Role data"
 // @Security	BearerAuth
-// @Success	200		{object}	Role
-// @Failure	400		{object}	utils.ErrorBody
-// @Failure	401	{object}	utils.ErrorBody
-// @Failure	403	{object}	utils.ErrorBody
-// @Failure	404		{object}	utils.ErrorBody
+// @Success	200	{object}	utils.Response{data=Role}
+// @Failure	400		{object}	utils.ErrorResponse
+// @Failure	401	{object}	utils.ErrorResponse
+// @Failure	403	{object}	utils.ErrorResponse
+// @Failure	404		{object}	utils.ErrorResponse
 // @Router		/api/v1/roles/{id} [put]
 func (h *Handler) Update(c *gin.Context) {
 	id, ok := utils.ParseUUIDParam(c, "id")
@@ -116,7 +116,7 @@ func (h *Handler) Update(c *gin.Context) {
 		h.fail(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, role)
+	utils.Success(c, http.StatusOK, "Role updated successfully", role)
 }
 
 // @Summary	Delete a role
@@ -124,12 +124,12 @@ func (h *Handler) Update(c *gin.Context) {
 // @Tags		roles
 // @Param		id	path	string	true	"Role ID"
 // @Security	BearerAuth
-// @Success	204
-// @Failure	400	{object}	utils.ErrorBody
-// @Failure	401	{object}	utils.ErrorBody
-// @Failure	403	{object}	utils.ErrorBody
-// @Failure	404	{object}	utils.ErrorBody
-// @Failure	409	{object}	utils.ErrorBody
+// @Success	200	{object}	utils.Response
+// @Failure	400	{object}	utils.ErrorResponse
+// @Failure	401	{object}	utils.ErrorResponse
+// @Failure	403	{object}	utils.ErrorResponse
+// @Failure	404	{object}	utils.ErrorResponse
+// @Failure	409	{object}	utils.ErrorResponse
 // @Router		/api/v1/roles/{id} [delete]
 func (h *Handler) Delete(c *gin.Context) {
 	id, ok := utils.ParseUUIDParam(c, "id")
@@ -140,7 +140,7 @@ func (h *Handler) Delete(c *gin.Context) {
 		h.fail(c, err)
 		return
 	}
-	c.Status(http.StatusNoContent)
+	utils.Success(c, http.StatusOK, "Role deleted successfully", nil)
 }
 
 func (h *Handler) fail(c *gin.Context, err error) {

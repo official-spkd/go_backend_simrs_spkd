@@ -23,10 +23,10 @@ func NewHandler(service Service) *Handler {
 // @Accept		json
 // @Produce	json
 // @Param		body	body		LoginRequest	true	"Credentials"
-// @Success	200		{object}	LoginResponse
-// @Failure	400		{object}	utils.ErrorBody
-// @Failure	401		{object}	utils.ErrorBody
-// @Failure	403		{object}	utils.ErrorBody
+// @Success	200	{object}	utils.Response{data=LoginResponse}
+// @Failure	400		{object}	utils.ErrorResponse
+// @Failure	401		{object}	utils.ErrorResponse
+// @Failure	403		{object}	utils.ErrorResponse
 // @Router		/api/v1/auth/login [post]
 func (h *Handler) Login(c *gin.Context) {
 	var req LoginRequest
@@ -40,7 +40,7 @@ func (h *Handler) Login(c *gin.Context) {
 		h.fail(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, res)
+	utils.Success(c, http.StatusOK, "Login successful", res)
 }
 
 // @Summary		Register a user
@@ -50,11 +50,11 @@ func (h *Handler) Login(c *gin.Context) {
 // @Produce		json
 // @Security		BearerAuth
 // @Param			body	body		RegisterRequest	true	"User data"
-// @Success		201		{object}	UserResponse
-// @Failure		400		{object}	utils.ErrorBody
-// @Failure		401		{object}	utils.ErrorBody
-// @Failure		403		{object}	utils.ErrorBody
-// @Failure		409		{object}	utils.ErrorBody
+// @Success	201	{object}	utils.Response{data=UserResponse}
+// @Failure		400		{object}	utils.ErrorResponse
+// @Failure		401		{object}	utils.ErrorResponse
+// @Failure		403		{object}	utils.ErrorResponse
+// @Failure		409		{object}	utils.ErrorResponse
 // @Router			/api/v1/auth/register [post]
 func (h *Handler) Register(c *gin.Context) {
 	var req RegisterRequest
@@ -69,15 +69,15 @@ func (h *Handler) Register(c *gin.Context) {
 		h.fail(c, err)
 		return
 	}
-	c.JSON(http.StatusCreated, toUserResponse(u))
+	utils.Success(c, http.StatusCreated, "User registered successfully", toUserResponse(u))
 }
 
 // @Summary	Get the signed-in user
 // @Tags		auth
 // @Produce	json
 // @Security	BearerAuth
-// @Success	200	{object}	UserResponse
-// @Failure	401	{object}	utils.ErrorBody
+// @Success	200	{object}	utils.Response{data=UserResponse}
+// @Failure	401	{object}	utils.ErrorResponse
 // @Router		/api/v1/auth/me [get]
 func (h *Handler) Me(c *gin.Context) {
 	claims, ok := middleware.ClaimsFrom(c)
@@ -91,7 +91,7 @@ func (h *Handler) Me(c *gin.Context) {
 		h.fail(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, toUserResponse(u))
+	utils.Success(c, http.StatusOK, "Profile retrieved successfully", toUserResponse(u))
 }
 
 func (h *Handler) fail(c *gin.Context, err error) {

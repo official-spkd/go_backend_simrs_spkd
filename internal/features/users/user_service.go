@@ -23,7 +23,7 @@ type RoleFinder interface {
 }
 
 type Service interface {
-	List(ctx context.Context, q ListQuery) (*ListResponse, error)
+	List(ctx context.Context, q ListQuery) ([]Response, int64, error)
 	Get(ctx context.Context, id uuid.UUID) (*models.User, error)
 	Update(ctx context.Context, id uuid.UUID, req UpdateRequest) (*models.User, error)
 	UpdateRole(ctx context.Context, actorID, id uuid.UUID, roleName string) (*models.User, error)
@@ -41,19 +41,19 @@ func NewService(repo Repository, roles RoleFinder) Service {
 	return &service{repo: repo, roles: roles}
 }
 
-func (s *service) List(ctx context.Context, q ListQuery) (*ListResponse, error) {
+func (s *service) List(ctx context.Context, q ListQuery) ([]Response, int64, error) {
 	q.Search = strings.TrimSpace(q.Search)
 
 	found, total, err := s.repo.List(ctx, q)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	data := make([]Response, 0, len(found))
 	for i := range found {
 		data = append(data, toResponse(&found[i]))
 	}
-	return &ListResponse{Data: data, Page: q.Page, Limit: q.Limit, Total: total}, nil
+	return data, total, nil
 }
 
 func (s *service) Get(ctx context.Context, id uuid.UUID) (*models.User, error) {

@@ -134,22 +134,6 @@ definitions:
     required:
     - display_name
     type: object
-  users.ListResponse:
-    properties:
-      data:
-        items:
-          $ref: '#/definitions/users.Response'
-        type: array
-      limit:
-        example: 20
-        type: integer
-      page:
-        example: 1
-        type: integer
-      total:
-        example: 42
-        type: integer
-    type: object
   users.ResetPasswordRequest:
     properties:
       new_password:
@@ -220,11 +204,64 @@ definitions:
     required:
     - is_active
     type: object
-  utils.ErrorBody:
+  utils.ErrorResponse:
     properties:
-      error:
+      data: {}
+      message:
         example: something went wrong
         type: string
+      success:
+        example: false
+        type: boolean
+    type: object
+  utils.PaginatedResponse:
+    properties:
+      data: {}
+      message:
+        example: Items retrieved successfully
+        type: string
+      pagination:
+        $ref: '#/definitions/utils.Pagination'
+      success:
+        example: true
+        type: boolean
+    type: object
+  utils.Pagination:
+    properties:
+      current_page:
+        example: 1
+        type: integer
+      has_next_page:
+        example: true
+        type: boolean
+      has_prev_page:
+        example: false
+        type: boolean
+      items_per_page:
+        example: 20
+        type: integer
+      next_page:
+        example: 2
+        type: integer
+      prev_page:
+        example: 1
+        type: integer
+      total_items:
+        example: 42
+        type: integer
+      total_pages:
+        example: 3
+        type: integer
+    type: object
+  utils.Response:
+    properties:
+      data: {}
+      message:
+        example: Operation completed successfully
+        type: string
+      success:
+        example: true
+        type: boolean
     type: object
 host: localhost:8080
 info:
@@ -250,19 +287,24 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/auth.LoginResponse'
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/auth.LoginResponse'
+              type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
       summary: Sign in with NIP or email
       tags:
       - auth
@@ -274,11 +316,16 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/auth.UserResponse'
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/auth.UserResponse'
+              type: object
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get the signed-in user
@@ -303,23 +350,28 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/auth.UserResponse'
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/auth.UserResponse'
+              type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "409":
           description: Conflict
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Register a user
@@ -334,17 +386,22 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/roles.Role'
-            type: array
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/roles.Role'
+                  type: array
+              type: object
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
       security:
       - BearerAuth: []
       summary: List roles
@@ -367,23 +424,28 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/roles.Role'
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/roles.Role'
+              type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "409":
           description: Conflict
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Create a role
@@ -399,28 +461,30 @@ paths:
         required: true
         type: string
       responses:
-        "204":
-          description: No Content
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "409":
           description: Conflict
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Delete a role
@@ -440,23 +504,28 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/roles.Role'
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/roles.Role'
+              type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get a role
@@ -484,23 +553,28 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/roles.Role'
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/roles.Role'
+              type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Update a role's display name and description
@@ -539,19 +613,26 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/users.ListResponse'
+            allOf:
+            - $ref: '#/definitions/utils.PaginatedResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/users.Response'
+                  type: array
+              type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
       security:
       - BearerAuth: []
       summary: List users
@@ -567,24 +648,26 @@ paths:
         required: true
         type: string
       responses:
-        "204":
-          description: No Content
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Delete a user
@@ -604,23 +687,28 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/users.Response'
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/users.Response'
+              type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get a user
@@ -648,27 +736,32 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/users.Response'
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/users.Response'
+              type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "409":
           description: Conflict
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Update a user's profile
@@ -692,24 +785,26 @@ paths:
         schema:
           $ref: '#/definitions/users.ResetPasswordRequest'
       responses:
-        "204":
-          description: No Content
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Reset a user's password
@@ -738,23 +833,28 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/users.Response'
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/users.Response'
+              type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Change a user's role
@@ -783,23 +883,28 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/users.Response'
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/users.Response'
+              type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/utils.ErrorBody'
+            $ref: '#/definitions/utils.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Activate or deactivate a user
@@ -813,9 +918,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/utils.Response'
       summary: Health check
       tags:
       - health

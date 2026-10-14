@@ -55,10 +55,3 @@ func toResponse(u *models.User) Response {
 		UpdatedAt: u.UpdatedAt,
 	}
 }
-
-type ListResponse struct {
-	Data  []Response `json:"data"`
-	Page  int        `json:"page" example:"1"`
-	Limit int        `json:"limit" example:"20"`
-	Total int64      `json:"total" example:"42"`
-}

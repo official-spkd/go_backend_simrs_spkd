@@ -97,11 +97,12 @@ Dependencies flow one way: `route → handler → service → repository → dat
 ## API conventions
 
 - Base path `/api/v1/<resource>`; resources are plural and lowercase.
-- Methods: `GET` list/detail · `POST` create (`201`) · `PUT` update editable fields · `PATCH` single-field or state change (`/role`, `/status`) · `DELETE` and password reset return `204` with no body.
+- Methods: `GET` list/detail · `POST` create (`201`) · `PUT` update editable fields · `PATCH` single-field or state change (`/role`, `/status`) · `DELETE` and password reset return `200` with `data: null`.
 - **IDs are UUIDs.** Parse path IDs with `utils.ParseUUIDParam` (bad UUID → `400`, unknown → `404`).
 - Status codes: `400` invalid input · `401` unauthenticated · `403` not allowed · `404` not found · `409` duplicate or in use · `500` unexpected.
-- Errors always go through `utils.AbortWithError`, giving `{"error": "..."}`. Map unknown errors to `500 "internal server error"`; never expose raw database errors.
-- List endpoints are paginated with `utils.ParsePagination` (`page`, `limit`, max 100) and return `{data, page, limit, total}`. Escape `LIKE` wildcards in search input.
+- **Every response uses the envelope** `{success, message, data}`. Send success with `utils.Success(c, status, message, data)` and failures with `utils.AbortWithError(c, status, message)` (`success: false`, `data: null`). Never call `c.JSON` / `c.Status` directly in handlers. Messages are English, e.g. `"User updated successfully"`.
+- Map unknown errors to `500 "internal server error"`; never expose raw database errors.
+- List endpoints are paginated with `utils.ParsePagination` (`page`, `limit`, max 100) and respond with `utils.SuccessPaginated(c, message, data, utils.NewPagination(page, limit, total))`, which adds `pagination` (`current_page`, `items_per_page`, `total_items`, `total_pages`, `has_prev_page`, `has_next_page`, `prev_page`, `next_page`) beside `data`. Escape `LIKE` wildcards in search input.
 - Never return `PasswordHash` or other secrets. Use response DTOs, not raw GORM models, for models with sensitive fields (User always).
 - Request DTOs use `binding` tags with sensible `max` lengths. Normalize input in the service (trim; lowercase emails).
 
@@ -126,9 +127,9 @@ Dependencies flow one way: `route → handler → service → repository → dat
 ## Swagger
 
 - General info lives only in `pkg/swagger/swagger.go`; handler docs are annotations directly above each handler. Regenerate with `make swagger`.
-- Every handler needs: `@Summary`, `@Description` (state the required role), `@Tags <feature>`, `@Accept`/`@Produce`, every `@Param`, `@Success`, every possible `@Failure` (`{object} utils.ErrorBody`), `@Router`, and **`@Security BearerAuth` on protected endpoints**.
+- Every handler needs: `@Summary`, `@Description` (state the required role), `@Tags <feature>`, `@Accept`/`@Produce`, every `@Param`, `@Success`, every possible `@Failure` (`{object} utils.ErrorResponse`), `@Router`, and **`@Security BearerAuth` on protected endpoints**.
 - DTO fields carry `example:"..."` tags; `uuid.UUID` fields also need `swaggertype:"string"`.
-- Swag cannot parse generic types such as `Page[T]`; declare a concrete `ListResponse` per feature.
+- Swag cannot parse generic types. Document success with the field-override syntax: `{object} utils.Response{data=Role}`, `{object} utils.Response{data=[]Role}`, `{object} utils.PaginatedResponse{data=[]Response}`, or plain `utils.Response` when `data` is null.
 - Authorize in Swagger UI expects `Bearer {token}`.
 
 ## Git

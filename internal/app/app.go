@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -55,8 +56,8 @@ func New(ctx context.Context, cfg *config.Config, db *gorm.DB) (*gin.Engine, err
 // @Summary	Health check
 // @Tags		health
 // @Produce	json
-// @Success	200	{object}	map[string]string
+// @Success	200	{object}	utils.Response
 // @Router		/ping [get]
 func ping(c *gin.Context) {
-	c.JSON(200, gin.H{"message": "pong"})
+	utils.Success(c, http.StatusOK, "pong", nil)
 }
