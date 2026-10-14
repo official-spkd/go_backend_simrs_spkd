@@ -12,20 +12,23 @@ import (
 	"gin-quickstart/internal/features/patients"
 	"gin-quickstart/internal/features/roles"
 	"gin-quickstart/internal/features/users"
+	"gin-quickstart/internal/features/visits"
 	"gin-quickstart/internal/platform/config"
 	"gin-quickstart/internal/platform/middleware"
-	"gin-quickstart/internal/platform/models"
 	"gin-quickstart/internal/platform/utils"
 	"gin-quickstart/pkg/swagger"
 )
 
 func New(ctx context.Context, cfg *config.Config, db *gorm.DB) (*gin.Engine, error) {
-	if err := db.AutoMigrate(&roles.Role{}, &models.User{}, &models.Patient{}); err != nil {
-		return nil, fmt.Errorf("migrate: %w", err)
+	if err := migrate(db); err != nil {
+		return nil, err
 	}
 
 	utils.InitValidation()
 	if err := patients.RegisterValidators(); err != nil {
+		return nil, fmt.Errorf("register validators: %w", err)
+	}
+	if err := visits.RegisterValidators(); err != nil {
 		return nil, fmt.Errorf("register validators: %w", err)
 	}
 
@@ -42,6 +45,7 @@ func New(ctx context.Context, cfg *config.Config, db *gorm.DB) (*gin.Engine, err
 
 	userSvc := users.NewService(users.NewRepository(db), roleSvc)
 	patientSvc := patients.NewService(patients.NewRepository(db))
+	visitSvc := visits.NewService(visits.NewRepository(db), patientSvc)
 
 	router := gin.Default()
 	router.Use(middleware.SecurityHeaders())
@@ -56,7 +60,9 @@ func New(ctx context.Context, cfg *config.Config, db *gorm.DB) (*gin.Engine, err
 	superadminOnly := middleware.RequireRoles(roles.Superadmin)
 	roles.RegisterRoutes(v1, roles.NewHandler(roleSvc), requiredAuth, superadminOnly)
 	users.RegisterRoutes(v1, users.NewHandler(userSvc), requiredAuth, superadminOnly)
-	patients.RegisterRoutes(v1, patients.NewHandler(patientSvc), requiredAuth, middleware.RequireRoles(roles.FrontOffice))
+	frontOfficeOnly := middleware.RequireRoles(roles.FrontOffice)
+	patients.RegisterRoutes(v1, patients.NewHandler(patientSvc), requiredAuth, frontOfficeOnly)
+	visits.RegisterRoutes(v1, visits.NewHandler(visitSvc), requiredAuth, frontOfficeOnly)
 
 	return router, nil
 }

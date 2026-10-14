@@ -96,6 +96,58 @@ definitions:
     - PayerGeneral
     - PayerBPJS
     - PayerInsurance
+  models.Penjamin:
+    enum:
+    - umum
+    - bpjs
+    - asuransi
+    type: string
+    x-enum-varnames:
+    - PenjaminUmum
+    - PenjaminBPJS
+    - PenjaminAsuransi
+  models.QueueStatus:
+    enum:
+    - Waiting
+    - Called
+    - Skipped
+    - Done
+    type: string
+    x-enum-varnames:
+    - QueueWaiting
+    - QueueCalled
+    - QueueSkipped
+    - QueueDone
+  models.SatuSehatStatus:
+    enum:
+    - NotSent
+    - Sent
+    type: string
+    x-enum-varnames:
+    - SatuSehatNotSent
+    - SatuSehatSent
+  models.VisitStatus:
+    enum:
+    - Registered
+    - Served
+    - Completed
+    - Paid
+    - Cancelled
+    type: string
+    x-enum-varnames:
+    - VisitRegistered
+    - VisitServed
+    - VisitCompleted
+    - VisitPaid
+    - VisitCancelled
+  models.VisitType:
+    enum:
+    - baru
+    - kontrol
+    type: string
+    x-enum-varnames:
+    - VisitTypeNew
+    - VisitTypeFollowUp
   patients.PatientRequest:
     properties:
       allergies:
@@ -254,6 +306,9 @@ definitions:
         type: string
       marital_status:
         example: Married
+        type: string
+      medical_record_number:
+        example: RM-000001
         type: string
       nik:
         example: "3171234567890001"
@@ -463,6 +518,224 @@ definitions:
         example: true
         type: boolean
     type: object
+  visits.CreateRequest:
+    properties:
+      allergies:
+        example: Penicillin
+        maxLength: 1000
+        type: string
+      bpjs_card_number:
+        description: 'BPJS only: required when penjamin is bpjs, rejected otherwise.'
+        example: "0001234567890"
+        type: string
+      chief_complaint:
+        example: Fever and cough for three days
+        maxLength: 1000
+        type: string
+      control_letter_number:
+        example: 0123R0010125K000001
+        maxLength: 50
+        type: string
+      coverage_limit:
+        description: in Rupiah
+        example: 15000000
+        minimum: 0
+        type: integer
+      doctor:
+        example: dr. Andi Wijaya
+        maxLength: 150
+        type: string
+      document_type:
+        example: Referral letter
+        maxLength: 50
+        type: string
+      fktp_referral_number:
+        example: 0123R0010125Y000001
+        maxLength: 50
+        type: string
+      insurance_name:
+        description: 'Asuransi only: insurance_name and policy_number are required
+          when penjamin is asuransi, rejected otherwise.'
+        example: Prudential
+        maxLength: 150
+        type: string
+      is_approved:
+        example: false
+        type: boolean
+      patient_id:
+        example: 3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71
+        type: string
+      penjamin:
+        allOf:
+        - $ref: '#/definitions/models.Penjamin'
+        enum:
+        - umum
+        - bpjs
+        - asuransi
+        example: bpjs
+      poli:
+        example: General Clinic
+        maxLength: 100
+        type: string
+      policy_number:
+        example: POL-2026-001234
+        maxLength: 50
+        type: string
+      responsible_person:
+        example: Budi Santoso
+        maxLength: 150
+        minLength: 3
+        type: string
+      visit_date:
+        example: "2026-10-20"
+        type: string
+      visit_type:
+        allOf:
+        - $ref: '#/definitions/models.VisitType'
+        enum:
+        - baru
+        - kontrol
+        example: baru
+    required:
+    - chief_complaint
+    - doctor
+    - patient_id
+    - penjamin
+    - poli
+    - visit_date
+    - visit_type
+    type: object
+  visits.PatientSummary:
+    properties:
+      birth_date:
+        example: "1990-05-17"
+        type: string
+      blood_type:
+        example: O
+        type: string
+      full_name:
+        example: Siti Rahmawati
+        type: string
+      gender:
+        allOf:
+        - $ref: '#/definitions/models.Gender'
+        enum:
+        - Male
+        - Female
+        example: Female
+      id:
+        example: 3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71
+        type: string
+      medical_record_number:
+        example: RM-000001
+        type: string
+      nik:
+        example: "3171015705900001"
+        type: string
+      phone:
+        example: "081234567890"
+        type: string
+    type: object
+  visits.Response:
+    properties:
+      allergies:
+        example: Penicillin
+        type: string
+      bpjs_card_number:
+        description: Present only when penjamin is bpjs.
+        example: "0001234567890"
+        type: string
+      chief_complaint:
+        example: Fever and cough for three days
+        type: string
+      control_letter_number:
+        example: 0123R0010125K000001
+        type: string
+      coverage_limit:
+        example: 15000000
+        type: integer
+      created_at:
+        type: string
+      doctor:
+        example: dr. Andi Wijaya
+        type: string
+      document_type:
+        example: Referral letter
+        type: string
+      fktp_referral_number:
+        example: 0123R0010125Y000001
+        type: string
+      id:
+        example: 9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93
+        type: string
+      insurance_name:
+        description: Present only when penjamin is asuransi. CoverageLimit is in Rupiah.
+        example: Prudential
+        type: string
+      is_approved:
+        example: false
+        type: boolean
+      patient:
+        $ref: '#/definitions/visits.PatientSummary'
+      penjamin:
+        allOf:
+        - $ref: '#/definitions/models.Penjamin'
+        enum:
+        - umum
+        - bpjs
+        - asuransi
+        example: bpjs
+      poli:
+        example: General Clinic
+        type: string
+      policy_number:
+        example: POL-2026-001234
+        type: string
+      queue_number:
+        example: "001"
+        type: string
+      queue_status:
+        allOf:
+        - $ref: '#/definitions/models.QueueStatus'
+        enum:
+        - Waiting
+        - Called
+        - Skipped
+        - Done
+        example: Waiting
+      responsible_person:
+        example: Budi Santoso
+        type: string
+      satu_sehat_status:
+        allOf:
+        - $ref: '#/definitions/models.SatuSehatStatus'
+        enum:
+        - NotSent
+        - Sent
+        example: NotSent
+      updated_at:
+        type: string
+      visit_date:
+        example: "2026-10-20"
+        type: string
+      visit_status:
+        allOf:
+        - $ref: '#/definitions/models.VisitStatus'
+        enum:
+        - Registered
+        - Served
+        - Completed
+        - Paid
+        - Cancelled
+        example: Registered
+      visit_type:
+        allOf:
+        - $ref: '#/definitions/models.VisitType'
+        enum:
+        - baru
+        - kontrol
+        example: baru
+    type: object
 info:
   contact: {}
   description: API documentation for SIMRS.
@@ -578,10 +851,10 @@ paths:
       - auth
   /api/v1/patients:
     get:
-      description: Front Office only. Search by name, NIK or phone; filter by gender
-        and payer.
+      description: Front Office only. Search by name, NIK, medical record number or
+        phone; filter by gender and payer.
       parameters:
-      - description: Search by name, NIK or phone
+      - description: Search by name, NIK, medical record number or phone
         in: query
         name: search
         type: string
@@ -1350,6 +1623,198 @@ paths:
       summary: Activate or deactivate a user
       tags:
       - users
+  /api/v1/visits:
+    get:
+      description: Front Office only. Newest dates first, then by clinic and queue
+        number.
+      parameters:
+      - description: Search by patient name, NIK or medical record number
+        in: query
+        name: search
+        type: string
+      - description: Visit date (YYYY-MM-DD)
+        in: query
+        name: date
+        type: string
+      - description: Clinic name
+        in: query
+        name: poli
+        type: string
+      - description: Penjamin
+        enum:
+        - umum
+        - bpjs
+        - asuransi
+        in: query
+        name: penjamin
+        type: string
+      - description: Visit type
+        enum:
+        - baru
+        - kontrol
+        in: query
+        name: visit_type
+        type: string
+      - description: Visit status
+        enum:
+        - Registered
+        - Served
+        - Completed
+        - Paid
+        - Cancelled
+        in: query
+        name: visit_status
+        type: string
+      - description: Clinic queue status
+        enum:
+        - Waiting
+        - Called
+        - Skipped
+        - Done
+        in: query
+        name: queue_status
+        type: string
+      - description: Satu Sehat status
+        enum:
+        - NotSent
+        - Sent
+        in: query
+        name: satu_sehat_status
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page (max 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.PaginatedResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/visits.Response'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List visits
+      tags:
+      - visits
+    post:
+      consumes:
+      - application/json
+      description: Front Office only. The patient must already be registered; pass
+        their patient_id. Queue numbers restart at 001 for each clinic and date. BPJS
+        fields are required when penjamin is bpjs and insurance fields when it is
+        asuransi; they are rejected for any other penjamin.
+      parameters:
+      - description: Registration data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/visits.CreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/visits.Response'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Register a patient to the queue
+      tags:
+      - visits
+  /api/v1/visits/{id}:
+    get:
+      description: Front Office only.
+      parameters:
+      - description: Visit ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/visits.Response'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a visit
+      tags:
+      - visits
   /ping:
     get:
       produces:

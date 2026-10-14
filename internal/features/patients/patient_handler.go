@@ -44,11 +44,11 @@ func (h *Handler) Create(c *gin.Context) {
 }
 
 // @Summary		List patients
-// @Description	Front Office only. Search by name, NIK or phone; filter by gender and payer.
+// @Description	Front Office only. Search by name, NIK, medical record number or phone; filter by gender and payer.
 // @Tags			patients
 // @Produce		json
 // @Security		BearerAuth
-// @Param			search	query		string	false	"Search by name, NIK or phone"
+// @Param			search	query		string	false	"Search by name, NIK, medical record number or phone"
 // @Param			gender	query		string	false	"Filter by gender"	Enums(Male, Female)
 // @Param			payer	query		string	false	"Filter by payer"	Enums(General, BPJS, Insurance)
 // @Param			page	query		int		false	"Page number"		default(1)

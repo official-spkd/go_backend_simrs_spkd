@@ -52,11 +52,12 @@ type ListQuery struct {
 }
 
 type Response struct {
-	ID        string        `json:"id" example:"3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71"`
-	NIK       string        `json:"nik" example:"3171234567890001"`
-	FullName  string        `json:"full_name" example:"Siti Rahmawati"`
-	BirthDate string        `json:"birth_date" example:"1990-05-17"`
-	Gender    models.Gender `json:"gender" enums:"Male,Female" example:"Female"`
+	ID                  string        `json:"id" example:"3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71"`
+	MedicalRecordNumber string        `json:"medical_record_number" example:"RM-000001"`
+	NIK                 string        `json:"nik" example:"3171234567890001"`
+	FullName            string        `json:"full_name" example:"Siti Rahmawati"`
+	BirthDate           string        `json:"birth_date" example:"1990-05-17"`
+	Gender              models.Gender `json:"gender" enums:"Male,Female" example:"Female"`
 
 	BirthPlace    string `json:"birth_place" example:"Jakarta"`
 	Religion      string `json:"religion" example:"Islam"`
@@ -85,6 +86,7 @@ type Response struct {
 func toResponse(p *models.Patient) Response {
 	return Response{
 		ID:                           p.ID.String(),
+		MedicalRecordNumber:          p.MedicalRecordNumber,
 		NIK:                          p.NIK,
 		FullName:                     p.FullName,
 		BirthDate:                    p.BirthDate.Format(dateLayout),

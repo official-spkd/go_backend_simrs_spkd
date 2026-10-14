@@ -202,7 +202,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Front Office only. Search by name, NIK or phone; filter by gender and payer.",
+                "description": "Front Office only. Search by name, NIK, medical record number or phone; filter by gender and payer.",
                 "produces": [
                     "application/json"
                 ],
@@ -213,7 +213,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Search by name, NIK or phone",
+                        "description": "Search by name, NIK, medical record number or phone",
                         "name": "search",
                         "in": "query"
                     },
@@ -1447,6 +1447,303 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/visits": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Front Office only. Newest dates first, then by clinic and queue number.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "visits"
+                ],
+                "summary": "List visits",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search by patient name, NIK or medical record number",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Visit date (YYYY-MM-DD)",
+                        "name": "date",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Clinic name",
+                        "name": "poli",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "umum",
+                            "bpjs",
+                            "asuransi"
+                        ],
+                        "type": "string",
+                        "description": "Penjamin",
+                        "name": "penjamin",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "baru",
+                            "kontrol"
+                        ],
+                        "type": "string",
+                        "description": "Visit type",
+                        "name": "visit_type",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "Registered",
+                            "Served",
+                            "Completed",
+                            "Paid",
+                            "Cancelled"
+                        ],
+                        "type": "string",
+                        "description": "Visit status",
+                        "name": "visit_status",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "Waiting",
+                            "Called",
+                            "Skipped",
+                            "Done"
+                        ],
+                        "type": "string",
+                        "description": "Clinic queue status",
+                        "name": "queue_status",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "NotSent",
+                            "Sent"
+                        ],
+                        "type": "string",
+                        "description": "Satu Sehat status",
+                        "name": "satu_sehat_status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Items per page (max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.PaginatedResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/visits.Response"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Front Office only. The patient must already be registered; pass their patient_id. Queue numbers restart at 001 for each clinic and date. BPJS fields are required when penjamin is bpjs and insurance fields when it is asuransi; they are rejected for any other penjamin.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "visits"
+                ],
+                "summary": "Register a patient to the queue",
+                "parameters": [
+                    {
+                        "description": "Registration data",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/visits.CreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/visits.Response"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/visits/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Front Office only.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "visits"
+                ],
+                "summary": "Get a visit",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Visit ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/visits.Response"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/ping": {
             "get": {
                 "produces": [
@@ -1596,6 +1893,73 @@ const docTemplate = `{
                 "PayerGeneral",
                 "PayerBPJS",
                 "PayerInsurance"
+            ]
+        },
+        "models.Penjamin": {
+            "type": "string",
+            "enum": [
+                "umum",
+                "bpjs",
+                "asuransi"
+            ],
+            "x-enum-varnames": [
+                "PenjaminUmum",
+                "PenjaminBPJS",
+                "PenjaminAsuransi"
+            ]
+        },
+        "models.QueueStatus": {
+            "type": "string",
+            "enum": [
+                "Waiting",
+                "Called",
+                "Skipped",
+                "Done"
+            ],
+            "x-enum-varnames": [
+                "QueueWaiting",
+                "QueueCalled",
+                "QueueSkipped",
+                "QueueDone"
+            ]
+        },
+        "models.SatuSehatStatus": {
+            "type": "string",
+            "enum": [
+                "NotSent",
+                "Sent"
+            ],
+            "x-enum-varnames": [
+                "SatuSehatNotSent",
+                "SatuSehatSent"
+            ]
+        },
+        "models.VisitStatus": {
+            "type": "string",
+            "enum": [
+                "Registered",
+                "Served",
+                "Completed",
+                "Paid",
+                "Cancelled"
+            ],
+            "x-enum-varnames": [
+                "VisitRegistered",
+                "VisitServed",
+                "VisitCompleted",
+                "VisitPaid",
+                "VisitCancelled"
+            ]
+        },
+        "models.VisitType": {
+            "type": "string",
+            "enum": [
+                "baru",
+                "kontrol"
+            ],
+            "x-enum-varnames": [
+                "VisitTypeNew",
+                "VisitTypeFollowUp"
             ]
         },
         "patients.PatientRequest": {
@@ -1809,6 +2173,10 @@ const docTemplate = `{
                 "marital_status": {
                     "type": "string",
                     "example": "Married"
+                },
+                "medical_record_number": {
+                    "type": "string",
+                    "example": "RM-000001"
                 },
                 "nik": {
                     "type": "string",
@@ -2097,6 +2465,311 @@ const docTemplate = `{
                 "success": {
                     "type": "boolean",
                     "example": true
+                }
+            }
+        },
+        "visits.CreateRequest": {
+            "type": "object",
+            "required": [
+                "chief_complaint",
+                "doctor",
+                "patient_id",
+                "penjamin",
+                "poli",
+                "visit_date",
+                "visit_type"
+            ],
+            "properties": {
+                "allergies": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "example": "Penicillin"
+                },
+                "bpjs_card_number": {
+                    "description": "BPJS only: required when penjamin is bpjs, rejected otherwise.",
+                    "type": "string",
+                    "example": "0001234567890"
+                },
+                "chief_complaint": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "example": "Fever and cough for three days"
+                },
+                "control_letter_number": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "example": "0123R0010125K000001"
+                },
+                "coverage_limit": {
+                    "description": "in Rupiah",
+                    "type": "integer",
+                    "minimum": 0,
+                    "example": 15000000
+                },
+                "doctor": {
+                    "type": "string",
+                    "maxLength": 150,
+                    "example": "dr. Andi Wijaya"
+                },
+                "document_type": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "example": "Referral letter"
+                },
+                "fktp_referral_number": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "example": "0123R0010125Y000001"
+                },
+                "insurance_name": {
+                    "description": "Asuransi only: insurance_name and policy_number are required when penjamin is asuransi, rejected otherwise.",
+                    "type": "string",
+                    "maxLength": 150,
+                    "example": "Prudential"
+                },
+                "is_approved": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "patient_id": {
+                    "type": "string",
+                    "example": "3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71"
+                },
+                "penjamin": {
+                    "enum": [
+                        "umum",
+                        "bpjs",
+                        "asuransi"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.Penjamin"
+                        }
+                    ],
+                    "example": "bpjs"
+                },
+                "poli": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "example": "General Clinic"
+                },
+                "policy_number": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "example": "POL-2026-001234"
+                },
+                "responsible_person": {
+                    "type": "string",
+                    "maxLength": 150,
+                    "minLength": 3,
+                    "example": "Budi Santoso"
+                },
+                "visit_date": {
+                    "type": "string",
+                    "example": "2026-10-20"
+                },
+                "visit_type": {
+                    "enum": [
+                        "baru",
+                        "kontrol"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.VisitType"
+                        }
+                    ],
+                    "example": "baru"
+                }
+            }
+        },
+        "visits.PatientSummary": {
+            "type": "object",
+            "properties": {
+                "birth_date": {
+                    "type": "string",
+                    "example": "1990-05-17"
+                },
+                "blood_type": {
+                    "type": "string",
+                    "example": "O"
+                },
+                "full_name": {
+                    "type": "string",
+                    "example": "Siti Rahmawati"
+                },
+                "gender": {
+                    "enum": [
+                        "Male",
+                        "Female"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.Gender"
+                        }
+                    ],
+                    "example": "Female"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71"
+                },
+                "medical_record_number": {
+                    "type": "string",
+                    "example": "RM-000001"
+                },
+                "nik": {
+                    "type": "string",
+                    "example": "3171015705900001"
+                },
+                "phone": {
+                    "type": "string",
+                    "example": "081234567890"
+                }
+            }
+        },
+        "visits.Response": {
+            "type": "object",
+            "properties": {
+                "allergies": {
+                    "type": "string",
+                    "example": "Penicillin"
+                },
+                "bpjs_card_number": {
+                    "description": "Present only when penjamin is bpjs.",
+                    "type": "string",
+                    "example": "0001234567890"
+                },
+                "chief_complaint": {
+                    "type": "string",
+                    "example": "Fever and cough for three days"
+                },
+                "control_letter_number": {
+                    "type": "string",
+                    "example": "0123R0010125K000001"
+                },
+                "coverage_limit": {
+                    "type": "integer",
+                    "example": 15000000
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "doctor": {
+                    "type": "string",
+                    "example": "dr. Andi Wijaya"
+                },
+                "document_type": {
+                    "type": "string",
+                    "example": "Referral letter"
+                },
+                "fktp_referral_number": {
+                    "type": "string",
+                    "example": "0123R0010125Y000001"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93"
+                },
+                "insurance_name": {
+                    "description": "Present only when penjamin is asuransi. CoverageLimit is in Rupiah.",
+                    "type": "string",
+                    "example": "Prudential"
+                },
+                "is_approved": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "patient": {
+                    "$ref": "#/definitions/visits.PatientSummary"
+                },
+                "penjamin": {
+                    "enum": [
+                        "umum",
+                        "bpjs",
+                        "asuransi"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.Penjamin"
+                        }
+                    ],
+                    "example": "bpjs"
+                },
+                "poli": {
+                    "type": "string",
+                    "example": "General Clinic"
+                },
+                "policy_number": {
+                    "type": "string",
+                    "example": "POL-2026-001234"
+                },
+                "queue_number": {
+                    "type": "string",
+                    "example": "001"
+                },
+                "queue_status": {
+                    "enum": [
+                        "Waiting",
+                        "Called",
+                        "Skipped",
+                        "Done"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.QueueStatus"
+                        }
+                    ],
+                    "example": "Waiting"
+                },
+                "responsible_person": {
+                    "type": "string",
+                    "example": "Budi Santoso"
+                },
+                "satu_sehat_status": {
+                    "enum": [
+                        "NotSent",
+                        "Sent"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.SatuSehatStatus"
+                        }
+                    ],
+                    "example": "NotSent"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "visit_date": {
+                    "type": "string",
+                    "example": "2026-10-20"
+                },
+                "visit_status": {
+                    "enum": [
+                        "Registered",
+                        "Served",
+                        "Completed",
+                        "Paid",
+                        "Cancelled"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.VisitStatus"
+                        }
+                    ],
+                    "example": "Registered"
+                },
+                "visit_type": {
+                    "enum": [
+                        "baru",
+                        "kontrol"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.VisitType"
+                        }
+                    ],
+                    "example": "baru"
                 }
             }
         }

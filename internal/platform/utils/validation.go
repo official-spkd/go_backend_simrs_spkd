@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"reflect"
 	"strings"
+	"unicode"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
@@ -58,8 +59,13 @@ func validationMessage(err error) string {
 	}
 
 	msgs := make([]string, 0, len(fieldErrs))
+	seen := make(map[string]bool, len(fieldErrs))
 	for _, fe := range fieldErrs {
-		msgs = append(msgs, fieldMessage(fe))
+		msg := fieldMessage(fe)
+		if !seen[msg] {
+			seen[msg] = true
+			msgs = append(msgs, msg)
+		}
 	}
 	return strings.Join(msgs, "; ")
 }
@@ -77,12 +83,22 @@ func fieldMessage(fe validator.FieldError) string {
 		return fmt.Sprintf("%s must be at most %s characters", field, fe.Param())
 	case "oneof":
 		return fmt.Sprintf("%s must be one of: %s", field, strings.ReplaceAll(fe.Param(), " ", ", "))
+	case "uuid":
+		return field + " must be a valid UUID"
 	case "email":
 		return field + " must be a valid email address"
 	case "numeric":
 		return field + " must contain digits only"
 	case "datetime":
 		return field + " must use the format YYYY-MM-DD"
+	case "required_if":
+		return field + " is required when " + condition(fe.Param())
+	case "excluded_unless":
+		return field + " is only allowed when " + condition(fe.Param())
+	case "bpjs_id":
+		return field + " must be a 13-digit BPJS number or a 16-digit NIK"
+	case "gte":
+		return fmt.Sprintf("%s must be at least %s", field, fe.Param())
 	case "notblank":
 		return field + " must not be blank"
 	case "person_name":
@@ -94,4 +110,21 @@ func fieldMessage(fe validator.FieldError) string {
 	default:
 		return field + " is invalid"
 	}
+}
+
+// condition turns a "Field value" validator parameter into "field is value".
+func condition(param string) string {
+	name, value, _ := strings.Cut(param, " ")
+	return toSnake(name) + " is " + value
+}
+
+func toSnake(s string) string {
+	var b strings.Builder
+	for i, r := range s {
+		if unicode.IsUpper(r) && i > 0 && unicode.IsLower(rune(s[i-1])) {
+			b.WriteByte('_')
+		}
+		b.WriteRune(unicode.ToLower(r))
+	}
+	return b.String()
 }
