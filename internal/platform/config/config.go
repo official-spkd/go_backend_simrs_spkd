@@ -11,6 +11,7 @@ import (
 )
 
 type Config struct {
+	AppHost string
 	AppPort string
 	DB      DB
 	JWT     JWT
@@ -49,6 +50,7 @@ func Load() *Config {
 	_ = godotenv.Load()
 
 	return &Config{
+		AppHost: getEnv("APP_HOST", "0.0.0.0"),
 		AppPort: getEnv("APP_PORT", "8080"),
 		DB: DB{
 			Host:     getEnv("DB_HOST", "localhost"),

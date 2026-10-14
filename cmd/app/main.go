@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"net"
 
 	"gin-quickstart/internal/app"
 	"gin-quickstart/internal/platform/config"
@@ -26,7 +27,7 @@ func main() {
 		log.Fatalf("app: %v", err)
 	}
 
-	if err := router.Run(":" + cfg.AppPort); err != nil {
+	if err := router.Run(net.JoinHostPort(cfg.AppHost, cfg.AppPort)); err != nil {
 		log.Fatalf("server: %v", err)
 	}
 }
