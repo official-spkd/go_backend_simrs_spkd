@@ -135,6 +135,7 @@ Defaults: `page=1`, `limit=20` (max 100). `prev_page` / `next_page` are `null` a
 
 - `middleware.SecurityHeaders()` stays registered globally. API responses get the strict CSP; only `/swagger` gets the relaxed one.
 - `middleware.CORS` is registered only when `CORS_ALLOWED_ORIGINS` is set. Origins are an explicit allow-list; **wildcard `*` is forbidden** (`Config.Validate()` rejects it). Credentials are not allowed. Never reflect `Origin` unchecked.
+- Every endpoint requires `Required` plus an explicit `RequireRoles(...)`, except the intentionally public ones: `/ping`, `/auth/login`, `/swagger`, and `/display/queues` (waiting-room screens; it must never expose patient data).
 - Never log or print secrets, tokens, passwords, or hashes.
 - Never commit `.env`. Every new env var goes into `.env.example` (placeholder value) and `internal/platform/config`; validate required or unsafe values in `Config.Validate()`.
 - Do not weaken validation, CSP, auth, or ownership checks to make a test or demo pass.

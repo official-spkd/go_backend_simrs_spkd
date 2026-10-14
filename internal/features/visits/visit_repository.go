@@ -62,8 +62,34 @@ func (r *repository) Create(ctx context.Context, v *models.Visit) error {
 
 		v.QueueSequence = last + 1
 		v.QueueNumber = fmt.Sprintf("%03d", v.QueueSequence)
-		return tx.Create(v).Error
+		if err := tx.Create(v).Error; err != nil {
+			return err
+		}
+		return enqueue(tx, v)
 	})
+}
+
+// enqueue puts the visit in the registration desk line with the next number of its date.
+// The advisory lock is always taken after the clinic lock above, so lock order never varies.
+func enqueue(tx *gorm.DB, v *models.Visit) error {
+	if err := tx.Exec("SELECT pg_advisory_xact_lock(hashtext(?))", "queue|"+v.VisitDate.Format(dateLayout)).Error; err != nil {
+		return err
+	}
+
+	var last int
+	err := tx.Model(&models.Queue{}).Where("queue_date = ?", v.VisitDate).
+		Select("COALESCE(MAX(queue_sequence), 0)").Scan(&last).Error
+	if err != nil {
+		return err
+	}
+
+	return tx.Create(&models.Queue{
+		VisitID:       v.ID,
+		QueueDate:     v.VisitDate,
+		QueueSequence: last + 1,
+		QueueNumber:   fmt.Sprintf("A%03d", last+1),
+		Status:        models.TicketWaiting,
+	}).Error
 }
 
 func (r *repository) FindByID(ctx context.Context, id uuid.UUID) (*models.Visit, error) {

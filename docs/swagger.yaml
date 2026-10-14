@@ -126,6 +126,20 @@ definitions:
     x-enum-varnames:
     - SatuSehatNotSent
     - SatuSehatSent
+  models.TicketStatus:
+    enum:
+    - WAITING
+    - CALLING
+    - SERVING
+    - COMPLETED
+    - SKIPPED
+    type: string
+    x-enum-varnames:
+    - TicketWaiting
+    - TicketCalling
+    - TicketServing
+    - TicketCompleted
+    - TicketSkipped
   models.VisitStatus:
     enum:
     - Registered
@@ -332,6 +346,148 @@ definitions:
         type: string
       updated_at:
         type: string
+    type: object
+  queues.CounterRef:
+    properties:
+      id:
+        example: 3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71
+        type: string
+      name:
+        example: Loket 1
+        type: string
+    type: object
+  queues.CounterState:
+    properties:
+      current:
+        $ref: '#/definitions/queues.QueueResponse'
+      id:
+        example: 3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71
+        type: string
+      is_active:
+        example: true
+        type: boolean
+      name:
+        example: Loket 1
+        type: string
+    type: object
+  queues.DisplayCounter:
+    properties:
+      counter_id:
+        example: 3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71
+        type: string
+      counter_name:
+        example: Loket 1
+        type: string
+      current:
+        $ref: '#/definitions/queues.DisplayQueue'
+      is_active:
+        example: true
+        type: boolean
+    type: object
+  queues.DisplayQueue:
+    properties:
+      call_count:
+        example: 2
+        type: integer
+      called_at:
+        type: string
+      last_called_at:
+        type: string
+      queue_number:
+        example: A001
+        type: string
+      status:
+        allOf:
+        - $ref: '#/definitions/models.TicketStatus'
+        enum:
+        - CALLING
+        - SERVING
+        example: CALLING
+    type: object
+  queues.DisplayResponse:
+    properties:
+      counters:
+        items:
+          $ref: '#/definitions/queues.DisplayCounter'
+        type: array
+      date:
+        example: "2026-10-14"
+        type: string
+      generated_at:
+        type: string
+      waiting_count:
+        example: 7
+        type: integer
+    type: object
+  queues.PatientRef:
+    properties:
+      full_name:
+        example: Siti Rahmawati
+        type: string
+      medical_record_number:
+        example: RM-000001
+        type: string
+    type: object
+  queues.QueueResponse:
+    properties:
+      call_count:
+        example: 1
+        type: integer
+      called_at:
+        type: string
+      completed_at:
+        type: string
+      counter:
+        $ref: '#/definitions/queues.CounterRef'
+      created_at:
+        type: string
+      doctor:
+        example: dr. Andi Wijaya
+        type: string
+      id:
+        example: 9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93
+        type: string
+      last_called_at:
+        type: string
+      patient:
+        $ref: '#/definitions/queues.PatientRef'
+      poli:
+        example: General Clinic
+        type: string
+      poli_queue_number:
+        example: "001"
+        type: string
+      queue_date:
+        example: "2026-10-14"
+        type: string
+      queue_number:
+        example: A001
+        type: string
+      serving_started_at:
+        type: string
+      skipped_at:
+        type: string
+      status:
+        allOf:
+        - $ref: '#/definitions/models.TicketStatus'
+        enum:
+        - WAITING
+        - CALLING
+        - SERVING
+        - COMPLETED
+        - SKIPPED
+        example: CALLING
+      visit_id:
+        example: 104dd35e-2b3a-4b2a-b38c-8bdd0e1ecc79
+        type: string
+    type: object
+  queues.UpdateCounterStatusRequest:
+    properties:
+      is_active:
+        example: false
+        type: boolean
+    required:
+    - is_active
     type: object
   roles.CreateRequest:
     properties:
@@ -849,6 +1005,347 @@ paths:
       summary: Register a user
       tags:
       - auth
+  /api/v1/counters:
+    get:
+      description: Front Office only. Each counter comes with the queue it is handling
+        right now (or null).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/queues.CounterState'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List counters
+      tags:
+      - queues
+  /api/v1/counters/{id}/complete:
+    post:
+      description: Front Office only. A CALLING or SERVING queue becomes COMPLETED
+        and the counter is free again.
+      parameters:
+      - description: Counter ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/queues.QueueResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Complete the current queue
+      tags:
+      - queues
+  /api/v1/counters/{id}/next:
+    post:
+      description: Front Office only. Gives the oldest waiting queue of today to this
+        counter (status CALLING). Concurrent counters never receive the same queue.
+      parameters:
+      - description: Counter ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/queues.QueueResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Call the next queue
+      tags:
+      - queues
+  /api/v1/counters/{id}/recall:
+    post:
+      description: Front Office only. Refreshes last_called_at and call_count of the
+        counter's CALLING queue so displays ring the bell again.
+      parameters:
+      - description: Counter ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/queues.QueueResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Recall the current queue
+      tags:
+      - queues
+  /api/v1/counters/{id}/serve:
+    post:
+      description: 'Front Office only. The called patient is present: CALLING becomes
+        SERVING.'
+      parameters:
+      - description: Counter ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/queues.QueueResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Start serving the current queue
+      tags:
+      - queues
+  /api/v1/counters/{id}/skip:
+    post:
+      description: 'Front Office only. The called patient did not show up: CALLING
+        becomes SKIPPED and the counter is free again.'
+      parameters:
+      - description: Counter ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/queues.QueueResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Skip the current queue
+      tags:
+      - queues
+  /api/v1/counters/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      description: Front Office only. A counter that is handling a queue cannot be
+        deactivated.
+      parameters:
+      - description: Counter ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: New status
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/queues.UpdateCounterStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/queues.CounterState'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Activate or deactivate a counter
+      tags:
+      - queues
+  /api/v1/display/queues:
+    get:
+      description: Public (no login) so TV screens can poll it. Shows only queue numbers
+        and counters, never patient data. A changed last_called_at means the bell
+        should ring again.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/queues.DisplayResponse'
+              type: object
+      summary: Waiting-room display data
+      tags:
+      - display
   /api/v1/patients:
     get:
       description: Front Office only. Search by name, NIK, medical record number or
@@ -1090,6 +1587,69 @@ paths:
       summary: Update a patient
       tags:
       - patients
+  /api/v1/queues:
+    get:
+      description: Front Office only. Queues of one date (default today) in call order.
+      parameters:
+      - description: Queue date (YYYY-MM-DD), default today
+        in: query
+        name: date
+        type: string
+      - description: Queue status
+        enum:
+        - WAITING
+        - CALLING
+        - SERVING
+        - COMPLETED
+        - SKIPPED
+        in: query
+        name: status
+        type: string
+      - description: Counter ID
+        in: query
+        name: counter_id
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page (max 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.PaginatedResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/queues.QueueResponse'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List queues
+      tags:
+      - queues
   /api/v1/roles:
     get:
       description: Superadmin only.

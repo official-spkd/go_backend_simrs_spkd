@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 
 	"gin-quickstart/internal/platform/models"
+	"gin-quickstart/internal/platform/utils"
 )
 
 var (
@@ -43,7 +44,7 @@ func (s *service) Create(ctx context.Context, req CreateRequest) (*models.Visit,
 	if err != nil {
 		return nil, err
 	}
-	if visitDate.Before(today()) {
+	if visitDate.Before(utils.Today()) {
 		return nil, ErrVisitDateInPast
 	}
 
@@ -107,12 +108,6 @@ func (s *service) List(ctx context.Context, q ListQuery) ([]Response, int64, err
 		data = append(data, toResponse(&found[i]))
 	}
 	return data, total, nil
-}
-
-// today is the current calendar date, as a UTC midnight to compare with parsed dates.
-func today() time.Time {
-	now := time.Now()
-	return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 }
 
 // applyPenjaminDetails copies only the detail fields that belong to the chosen penjamin.
