@@ -1,11 +1,9 @@
-package examinations
+package models
 
 import (
 	"time"
 
 	"github.com/google/uuid"
-
-	"gin-quickstart/internal/platform/models"
 )
 
 const (
@@ -19,11 +17,11 @@ const (
 
 // VitalAssessment is the initial assessment and vital signs of one visit.
 type VitalAssessment struct {
-	ID               uuid.UUID     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	VisitID          uuid.UUID     `gorm:"type:uuid;not null;uniqueIndex"`
-	Visit            *models.Visit `gorm:"foreignKey:VisitID"`
-	MeasuredByUserID uuid.UUID     `gorm:"type:uuid;not null"`
-	MeasuredAt       time.Time     `gorm:"not null"`
+	ID               uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	VisitID          uuid.UUID `gorm:"type:uuid;not null;uniqueIndex"`
+	Visit            *Visit    `gorm:"foreignKey:VisitID"`
+	MeasuredByUserID uuid.UUID `gorm:"type:uuid;not null"`
+	MeasuredAt       time.Time `gorm:"not null"`
 
 	SystolicBP       int      `gorm:"type:smallint;not null"`             // mmHg
 	DiastolicBP      int      `gorm:"type:smallint;not null"`             // mmHg

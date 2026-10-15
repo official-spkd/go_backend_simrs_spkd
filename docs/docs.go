@@ -2717,7 +2717,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/roles.Role"
+                                                "$ref": "#/definitions/models.Role"
                                             }
                                         }
                                     }
@@ -2779,7 +2779,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/roles.Role"
+                                            "$ref": "#/definitions/models.Role"
                                         }
                                     }
                                 }
@@ -2849,7 +2849,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/roles.Role"
+                                            "$ref": "#/definitions/models.Role"
                                         }
                                     }
                                 }
@@ -2929,7 +2929,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/roles.Role"
+                                            "$ref": "#/definitions/models.Role"
                                         }
                                     }
                                 }
@@ -4809,6 +4809,39 @@ const docTemplate = `{
                 "QueueDone"
             ]
         },
+        "models.Role": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string",
+                    "example": "Medical doctor"
+                },
+                "display_name": {
+                    "type": "string",
+                    "example": "Doctor"
+                },
+                "id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "example": "3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71"
+                },
+                "is_system": {
+                    "description": "built-in roles cannot be deleted",
+                    "type": "boolean",
+                    "example": true
+                },
+                "name": {
+                    "type": "string",
+                    "example": "doctor"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
         "models.SatuSehatStatus": {
             "type": "string",
             "enum": [
@@ -5546,39 +5579,6 @@ const docTemplate = `{
                     "maxLength": 50,
                     "minLength": 2,
                     "example": "nurse"
-                }
-            }
-        },
-        "roles.Role": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string",
-                    "example": "Medical doctor"
-                },
-                "display_name": {
-                    "type": "string",
-                    "example": "Doctor"
-                },
-                "id": {
-                    "type": "string",
-                    "format": "uuid",
-                    "example": "3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71"
-                },
-                "is_system": {
-                    "description": "built-in roles cannot be deleted",
-                    "type": "boolean",
-                    "example": true
-                },
-                "name": {
-                    "type": "string",
-                    "example": "doctor"
-                },
-                "updated_at": {
-                    "type": "string"
                 }
             }
         },

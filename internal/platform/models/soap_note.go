@@ -1,11 +1,9 @@
-package examinations
+package models
 
 import (
 	"time"
 
 	"github.com/google/uuid"
-
-	"gin-quickstart/internal/platform/models"
 )
 
 const (
@@ -24,12 +22,12 @@ const (
 // SoapNote is the doctor's SOAP note of one visit. A final note is immutable; corrections are
 // added as addenda.
 type SoapNote struct {
-	ID       uuid.UUID      `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	VisitID  uuid.UUID      `gorm:"type:uuid;not null;uniqueIndex"`
-	Visit    *models.Visit  `gorm:"foreignKey:VisitID"`
-	DoctorID uuid.UUID      `gorm:"type:uuid;not null;index"`
-	Doctor   *models.Doctor `gorm:"foreignKey:DoctorID"`
-	Status   string         `gorm:"size:10;not null"`
+	ID       uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	VisitID  uuid.UUID `gorm:"type:uuid;not null;uniqueIndex"`
+	Visit    *Visit    `gorm:"foreignKey:VisitID"`
+	DoctorID uuid.UUID `gorm:"type:uuid;not null;index"`
+	Doctor   *Doctor   `gorm:"foreignKey:DoctorID"`
+	Status   string    `gorm:"size:10;not null"`
 
 	Subjective        string `gorm:"type:text;not null;default:''"`
 	ObjectiveFindings string `gorm:"type:text;not null;default:''"`

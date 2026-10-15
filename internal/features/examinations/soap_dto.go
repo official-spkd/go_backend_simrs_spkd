@@ -3,6 +3,8 @@ package examinations
 import (
 	"encoding/json"
 	"time"
+
+	"gin-quickstart/internal/platform/models"
 )
 
 type DiagnosisInput struct {
@@ -76,14 +78,14 @@ type SoapResponse struct {
 	UpdatedAt   time.Time          `json:"updated_at"`
 }
 
-func toDiagnosisResponse(d SoapDiagnosis) DiagnosisResponse {
+func toDiagnosisResponse(d models.SoapDiagnosis) DiagnosisResponse {
 	return DiagnosisResponse{ICD10Code: d.ICD10Code, Name: d.Name}
 }
 
 // SoapView is a note together with the live vital signs it would show in "O" while still a draft.
 type SoapView struct {
-	Note  *SoapNote
-	Vital *VitalAssessment
+	Note  *models.SoapNote
+	Vital *models.VitalAssessment
 }
 
 func toSoapResponse(v SoapView) SoapResponse {
@@ -109,7 +111,7 @@ func toSoapResponse(v SoapView) SoapResponse {
 	}
 	for _, d := range n.Diagnoses {
 		dr := toDiagnosisResponse(d)
-		if d.Role == DiagnosisPrimary {
+		if d.Role == models.DiagnosisPrimary {
 			r.Assessment.PrimaryDiagnosis = &dr
 		} else {
 			r.Assessment.SecondaryDiagnoses = append(r.Assessment.SecondaryDiagnoses, dr)
@@ -122,8 +124,8 @@ func toSoapResponse(v SoapView) SoapResponse {
 }
 
 // objectiveVitals returns the frozen snapshot of a final note, or the live vital signs of a draft.
-func objectiveVitals(n *SoapNote, live *VitalAssessment) *VitalResponse {
-	if n.Status == SoapFinal && n.ObjectiveVitalsSnapshot != nil {
+func objectiveVitals(n *models.SoapNote, live *models.VitalAssessment) *VitalResponse {
+	if n.Status == models.SoapFinal && n.ObjectiveVitalsSnapshot != nil {
 		var frozen VitalResponse
 		if json.Unmarshal([]byte(*n.ObjectiveVitalsSnapshot), &frozen) == nil {
 			return &frozen

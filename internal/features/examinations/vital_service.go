@@ -16,14 +16,14 @@ import (
 
 const adultAge = 18
 
-func (s *service) GetVitals(ctx context.Context, visitID uuid.UUID, actor *utils.TokenClaims) (*VitalAssessment, error) {
+func (s *service) GetVitals(ctx context.Context, visitID uuid.UUID, actor *utils.TokenClaims) (*models.VitalAssessment, error) {
 	if _, err := s.authorize(ctx, visitID, actor, false); err != nil {
 		return nil, err
 	}
 	return s.repo.FindVital(ctx, visitID)
 }
 
-func (s *service) SaveVitals(ctx context.Context, visitID uuid.UUID, req VitalRequest, actor *utils.TokenClaims) (*VitalAssessment, error) {
+func (s *service) SaveVitals(ctx context.Context, visitID uuid.UUID, req VitalRequest, actor *utils.TokenClaims) (*models.VitalAssessment, error) {
 	visit, err := s.authorize(ctx, visitID, actor, true)
 	if err != nil {
 		return nil, err
@@ -35,7 +35,7 @@ func (s *service) SaveVitals(ctx context.Context, visitID uuid.UUID, req VitalRe
 		return nil, err
 	}
 
-	v := &VitalAssessment{
+	v := &models.VitalAssessment{
 		VisitID:          visitID,
 		MeasuredByUserID: actor.UserID,
 		MeasuredAt:       time.Now(),
@@ -172,7 +172,7 @@ func painCategory(score int) string {
 }
 
 // flagsFor returns advisory warnings using adult reference values.
-func flagsFor(v *VitalAssessment) []Flag {
+func flagsFor(v *models.VitalAssessment) []Flag {
 	flags := []Flag{}
 	add := func(field, level, msg string) { flags = append(flags, Flag{Field: field, Level: level, Message: msg}) }
 
@@ -221,12 +221,12 @@ func roundPtr(v *float64, places int) *float64 {
 }
 
 // newVersion captures the vital signs as they are in v, for the history.
-func newVersion(v *VitalAssessment, reason string, userID uuid.UUID, at time.Time) (VitalVersion, error) {
+func newVersion(v *models.VitalAssessment, reason string, userID uuid.UUID, at time.Time) (models.VitalVersion, error) {
 	snapshot, err := json.Marshal(toVitalResponse(v))
 	if err != nil {
-		return VitalVersion{}, err
+		return models.VitalVersion{}, err
 	}
-	return VitalVersion{
+	return models.VitalVersion{
 		Version:         v.Version,
 		Snapshot:        string(snapshot),
 		ChangeReason:    reason,
@@ -247,7 +247,7 @@ func (s *service) ListVitalVersions(ctx context.Context, visitID uuid.UUID, acto
 
 	out := make([]VersionSummary, len(versions))
 	for i := range versions {
-		var previous *VitalVersion
+		var previous *models.VitalVersion
 		if i+1 < len(versions) { // versions are newest first
 			previous = &versions[i+1]
 		}
@@ -266,7 +266,7 @@ func (s *service) GetVitalVersion(ctx context.Context, visitID uuid.UUID, versio
 		return nil, err
 	}
 
-	var previous *VitalVersion
+	var previous *models.VitalVersion
 	if version > 0 {
 		if p, err := s.repo.FindVitalVersion(ctx, vital.ID, version-1); err == nil {
 			previous = p
@@ -283,7 +283,7 @@ func (s *service) GetVitalVersion(ctx context.Context, visitID uuid.UUID, versio
 }
 
 // vitalOf checks access to the visit and returns its vital signs record.
-func (s *service) vitalOf(ctx context.Context, visitID uuid.UUID, actor *utils.TokenClaims) (*VitalAssessment, error) {
+func (s *service) vitalOf(ctx context.Context, visitID uuid.UUID, actor *utils.TokenClaims) (*models.VitalAssessment, error) {
 	if _, err := s.authorize(ctx, visitID, actor, false); err != nil {
 		return nil, err
 	}

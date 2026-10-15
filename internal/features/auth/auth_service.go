@@ -29,7 +29,7 @@ var (
 var dummyHash, _ = bcrypt.GenerateFromPassword([]byte("dummy-password"), bcrypt.DefaultCost)
 
 type RoleFinder interface {
-	FindByName(ctx context.Context, name string) (*roles.Role, error)
+	FindByName(ctx context.Context, name string) (*models.Role, error)
 }
 
 // DoctorFinder is satisfied by the doctors feature's service.

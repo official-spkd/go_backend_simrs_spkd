@@ -7,6 +7,8 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+
+	"gin-quickstart/internal/platform/models"
 )
 
 var (
@@ -16,15 +18,15 @@ var (
 )
 
 type Repository interface {
-	List(ctx context.Context) ([]Role, error)
-	FindByID(ctx context.Context, id uuid.UUID) (*Role, error)
-	FindByName(ctx context.Context, name string) (*Role, error)
-	Create(ctx context.Context, r *Role) error
-	Update(ctx context.Context, r *Role) error
+	List(ctx context.Context) ([]models.Role, error)
+	FindByID(ctx context.Context, id uuid.UUID) (*models.Role, error)
+	FindByName(ctx context.Context, name string) (*models.Role, error)
+	Create(ctx context.Context, r *models.Role) error
+	Update(ctx context.Context, r *models.Role) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	// Seed inserts the given roles. Existing roles keep their edited fields, but are
 	// always marked as built-in.
-	Seed(ctx context.Context, roles []Role) error
+	Seed(ctx context.Context, roles []models.Role) error
 }
 
 type repository struct {
@@ -35,16 +37,16 @@ func NewRepository(db *gorm.DB) Repository {
 	return &repository{db: db}
 }
 
-func (r *repository) List(ctx context.Context) ([]Role, error) {
-	var out []Role
+func (r *repository) List(ctx context.Context) ([]models.Role, error) {
+	var out []models.Role
 	if err := r.db.WithContext(ctx).Order("created_at, name").Find(&out).Error; err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (r *repository) FindByID(ctx context.Context, id uuid.UUID) (*Role, error) {
-	var role Role
+func (r *repository) FindByID(ctx context.Context, id uuid.UUID) (*models.Role, error) {
+	var role models.Role
 	err := r.db.WithContext(ctx).First(&role, "id = ?", id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrNotFound
@@ -55,8 +57,8 @@ func (r *repository) FindByID(ctx context.Context, id uuid.UUID) (*Role, error) 
 	return &role, nil
 }
 
-func (r *repository) FindByName(ctx context.Context, name string) (*Role, error) {
-	var role Role
+func (r *repository) FindByName(ctx context.Context, name string) (*models.Role, error) {
+	var role models.Role
 	err := r.db.WithContext(ctx).Where("name = ?", name).First(&role).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrNotFound
@@ -67,7 +69,7 @@ func (r *repository) FindByName(ctx context.Context, name string) (*Role, error)
 	return &role, nil
 }
 
-func (r *repository) Create(ctx context.Context, role *Role) error {
+func (r *repository) Create(ctx context.Context, role *models.Role) error {
 	err := r.db.WithContext(ctx).Create(role).Error
 	if errors.Is(err, gorm.ErrDuplicatedKey) {
 		return ErrAlreadyExists
@@ -75,12 +77,12 @@ func (r *repository) Create(ctx context.Context, role *Role) error {
 	return err
 }
 
-func (r *repository) Update(ctx context.Context, role *Role) error {
+func (r *repository) Update(ctx context.Context, role *models.Role) error {
 	return r.db.WithContext(ctx).Save(role).Error
 }
 
 func (r *repository) Delete(ctx context.Context, id uuid.UUID) error {
-	res := r.db.WithContext(ctx).Delete(&Role{}, "id = ?", id)
+	res := r.db.WithContext(ctx).Delete(&models.Role{}, "id = ?", id)
 	if errors.Is(res.Error, gorm.ErrForeignKeyViolated) {
 		return ErrInUse
 	}
@@ -93,7 +95,7 @@ func (r *repository) Delete(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-func (r *repository) Seed(ctx context.Context, roles []Role) error {
+func (r *repository) Seed(ctx context.Context, roles []models.Role) error {
 	return r.db.WithContext(ctx).
 		Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "name"}},

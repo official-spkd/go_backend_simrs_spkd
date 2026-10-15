@@ -46,15 +46,15 @@ type UserFinder interface {
 // Overview is everything recorded for a visit so far.
 type Overview struct {
 	Visit *models.Visit
-	Vital *VitalAssessment
+	Vital *models.VitalAssessment
 	Soap  *SoapView
 }
 
 type Service interface {
 	Overview(ctx context.Context, visitID uuid.UUID, actor *utils.TokenClaims) (*Overview, error)
 
-	GetVitals(ctx context.Context, visitID uuid.UUID, actor *utils.TokenClaims) (*VitalAssessment, error)
-	SaveVitals(ctx context.Context, visitID uuid.UUID, req VitalRequest, actor *utils.TokenClaims) (*VitalAssessment, error)
+	GetVitals(ctx context.Context, visitID uuid.UUID, actor *utils.TokenClaims) (*models.VitalAssessment, error)
+	SaveVitals(ctx context.Context, visitID uuid.UUID, req VitalRequest, actor *utils.TokenClaims) (*models.VitalAssessment, error)
 	ListVitalVersions(ctx context.Context, visitID uuid.UUID, actor *utils.TokenClaims) ([]VersionSummary, error)
 	GetVitalVersion(ctx context.Context, visitID uuid.UUID, version int, actor *utils.TokenClaims) (*VersionDetail, error)
 
@@ -134,7 +134,7 @@ func (s *service) ensureNotFinalized(ctx context.Context, visitID uuid.UUID) err
 	if err != nil {
 		return err
 	}
-	if note.Status == SoapFinal {
+	if note.Status == models.SoapFinal {
 		return ErrFinalized
 	}
 	return nil

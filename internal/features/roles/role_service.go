@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+
+	"gin-quickstart/internal/platform/models"
 )
 
 var (
@@ -17,11 +19,11 @@ var (
 )
 
 type Service interface {
-	List(ctx context.Context) ([]Role, error)
-	Get(ctx context.Context, id uuid.UUID) (*Role, error)
-	FindByName(ctx context.Context, name string) (*Role, error)
-	Create(ctx context.Context, req CreateRequest) (*Role, error)
-	Update(ctx context.Context, id uuid.UUID, req UpdateRequest) (*Role, error)
+	List(ctx context.Context) ([]models.Role, error)
+	Get(ctx context.Context, id uuid.UUID) (*models.Role, error)
+	FindByName(ctx context.Context, name string) (*models.Role, error)
+	Create(ctx context.Context, req CreateRequest) (*models.Role, error)
+	Update(ctx context.Context, id uuid.UUID, req UpdateRequest) (*models.Role, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 	SeedDefaults(ctx context.Context) error
 }
@@ -34,25 +36,25 @@ func NewService(repo Repository) Service {
 	return &service{repo: repo}
 }
 
-func (s *service) List(ctx context.Context) ([]Role, error) {
+func (s *service) List(ctx context.Context) ([]models.Role, error) {
 	return s.repo.List(ctx)
 }
 
-func (s *service) Get(ctx context.Context, id uuid.UUID) (*Role, error) {
+func (s *service) Get(ctx context.Context, id uuid.UUID) (*models.Role, error) {
 	return s.repo.FindByID(ctx, id)
 }
 
-func (s *service) FindByName(ctx context.Context, name string) (*Role, error) {
+func (s *service) FindByName(ctx context.Context, name string) (*models.Role, error) {
 	return s.repo.FindByName(ctx, name)
 }
 
-func (s *service) Create(ctx context.Context, req CreateRequest) (*Role, error) {
+func (s *service) Create(ctx context.Context, req CreateRequest) (*models.Role, error) {
 	name := strings.TrimSpace(req.Name)
 	if !namePattern.MatchString(name) {
 		return nil, ErrInvalidName
 	}
 
-	role := &Role{
+	role := &models.Role{
 		Name:        name,
 		DisplayName: strings.TrimSpace(req.DisplayName),
 		Description: strings.TrimSpace(req.Description),
@@ -63,7 +65,7 @@ func (s *service) Create(ctx context.Context, req CreateRequest) (*Role, error) 
 	return role, nil
 }
 
-func (s *service) Update(ctx context.Context, id uuid.UUID, req UpdateRequest) (*Role, error) {
+func (s *service) Update(ctx context.Context, id uuid.UUID, req UpdateRequest) (*models.Role, error) {
 	role, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err

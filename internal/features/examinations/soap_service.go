@@ -10,6 +10,8 @@ import (
 	"github.com/google/uuid"
 
 	"gin-quickstart/internal/platform/utils"
+
+	"gin-quickstart/internal/platform/models"
 )
 
 func (s *service) GetSoap(ctx context.Context, visitID uuid.UUID, actor *utils.TokenClaims) (*SoapView, error) {
@@ -28,7 +30,7 @@ func (s *service) SaveSoap(ctx context.Context, visitID uuid.UUID, req SoapReque
 	if err != nil {
 		return nil, err
 	}
-	n.VisitID, n.DoctorID, n.Status = visitID, *visit.DoctorID, SoapDraft
+	n.VisitID, n.DoctorID, n.Status = visitID, *visit.DoctorID, models.SoapDraft
 
 	existing, err := s.repo.FindSoap(ctx, visitID)
 	switch {
@@ -40,7 +42,7 @@ func (s *service) SaveSoap(ctx context.Context, visitID uuid.UUID, req SoapReque
 	case err != nil:
 		return nil, err
 	default:
-		if existing.Status == SoapFinal {
+		if existing.Status == models.SoapFinal {
 			return nil, ErrFinalized
 		}
 		if req.Version != existing.Version {
@@ -63,7 +65,7 @@ func (s *service) FinalizeSoap(ctx context.Context, visitID uuid.UUID, actor *ut
 	if err != nil {
 		return nil, err
 	}
-	if note.Status == SoapFinal {
+	if note.Status == models.SoapFinal {
 		return nil, ErrFinalized
 	}
 
@@ -93,7 +95,7 @@ func (s *service) AddAddendum(ctx context.Context, visitID uuid.UUID, req Addend
 	if err != nil {
 		return nil, err
 	}
-	err = s.repo.AddAddendum(ctx, &SoapAddendum{
+	err = s.repo.AddAddendum(ctx, &models.SoapAddendum{
 		SoapNoteID:   note.ID,
 		AuthorUserID: actor.UserID,
 		Content:      strings.TrimSpace(req.Content),
@@ -118,8 +120,8 @@ func (s *service) view(ctx context.Context, visitID uuid.UUID) (*SoapView, error
 }
 
 // buildNote turns a draft request into a note, checking the rules that span several fields.
-func buildNote(req SoapRequest) (*SoapNote, error) {
-	n := &SoapNote{
+func buildNote(req SoapRequest) (*models.SoapNote, error) {
+	n := &models.SoapNote{
 		Subjective:        strings.TrimSpace(req.Subjective),
 		ObjectiveFindings: strings.TrimSpace(req.ObjectiveFindings),
 		AssessmentNotes:   strings.TrimSpace(req.AssessmentNotes),
@@ -135,11 +137,11 @@ func buildNote(req SoapRequest) (*SoapNote, error) {
 			return InputError("diagnosis " + code + " is listed more than once")
 		}
 		seen[code] = true
-		n.Diagnoses = append(n.Diagnoses, SoapDiagnosis{ICD10Code: code, Name: strings.TrimSpace(in.Name), Role: role})
+		n.Diagnoses = append(n.Diagnoses, models.SoapDiagnosis{ICD10Code: code, Name: strings.TrimSpace(in.Name), Role: role})
 		return nil
 	}
 	if req.PrimaryDiagnosis != nil {
-		if err := add(*req.PrimaryDiagnosis, DiagnosisPrimary); err != nil {
+		if err := add(*req.PrimaryDiagnosis, models.DiagnosisPrimary); err != nil {
 			return nil, err
 		}
 	}
@@ -147,13 +149,13 @@ func buildNote(req SoapRequest) (*SoapNote, error) {
 		return nil, InputError("primary_diagnosis is required when secondary_diagnoses are sent")
 	}
 	for _, in := range req.SecondaryDiagnoses {
-		if err := add(in, DiagnosisSecondary); err != nil {
+		if err := add(in, models.DiagnosisSecondary); err != nil {
 			return nil, err
 		}
 	}
 
 	if req.ControlDate != "" {
-		if req.FollowUp != FollowUpOutpatient {
+		if req.FollowUp != models.FollowUpOutpatient {
 			return nil, InputError("control_date is only allowed with follow_up outpatient_followup")
 		}
 		d, err := time.Parse("2006-01-02", req.ControlDate)
@@ -165,14 +167,14 @@ func buildNote(req SoapRequest) (*SoapNote, error) {
 		}
 		n.ControlDate = &d
 	}
-	if n.ReferralNotes != "" && req.FollowUp != FollowUpInpatient && req.FollowUp != FollowUpICU {
+	if n.ReferralNotes != "" && req.FollowUp != models.FollowUpInpatient && req.FollowUp != models.FollowUpICU {
 		return nil, InputError("referral_notes is only allowed with refer_inpatient or refer_icu")
 	}
 	return n, nil
 }
 
 // missingForFinal lists the fields that must be filled before a note can be finalized.
-func missingForFinal(n *SoapNote, hasVitals bool) []string {
+func missingForFinal(n *models.SoapNote, hasVitals bool) []string {
 	var missing []string
 	need := func(ok bool, field string) {
 		if !ok {
@@ -185,18 +187,18 @@ func missingForFinal(n *SoapNote, hasVitals bool) []string {
 	need(n.Plan != "", "plan")
 	need(hasPrimary(n), "primary_diagnosis")
 	need(n.FollowUp != "", "follow_up")
-	if n.FollowUp == FollowUpOutpatient {
+	if n.FollowUp == models.FollowUpOutpatient {
 		need(n.ControlDate != nil, "control_date")
 	}
-	if n.FollowUp == FollowUpInpatient || n.FollowUp == FollowUpICU {
+	if n.FollowUp == models.FollowUpInpatient || n.FollowUp == models.FollowUpICU {
 		need(n.ReferralNotes != "", "referral_notes")
 	}
 	return missing
 }
 
-func hasPrimary(n *SoapNote) bool {
+func hasPrimary(n *models.SoapNote) bool {
 	for _, d := range n.Diagnoses {
-		if d.Role == DiagnosisPrimary {
+		if d.Role == models.DiagnosisPrimary {
 			return true
 		}
 	}

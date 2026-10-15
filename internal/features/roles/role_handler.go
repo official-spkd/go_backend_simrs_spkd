@@ -22,7 +22,7 @@ func NewHandler(service Service) *Handler {
 // @Tags		roles
 // @Produce	json
 // @Security	BearerAuth
-// @Success	200	{object}	utils.Response{data=[]Role}
+// @Success	200	{object}	utils.Response{data=[]models.Role}
 // @Failure	401	{object}	utils.ErrorResponse
 // @Failure	403	{object}	utils.ErrorResponse
 // @Router		/api/v1/roles [get]
@@ -41,7 +41,7 @@ func (h *Handler) List(c *gin.Context) {
 // @Produce	json
 // @Param		id	path		string	true	"Role ID"
 // @Security	BearerAuth
-// @Success	200	{object}	utils.Response{data=Role}
+// @Success	200	{object}	utils.Response{data=models.Role}
 // @Failure	400	{object}	utils.ErrorResponse
 // @Failure	401	{object}	utils.ErrorResponse
 // @Failure	403	{object}	utils.ErrorResponse
@@ -67,7 +67,7 @@ func (h *Handler) Get(c *gin.Context) {
 // @Produce	json
 // @Param		body	body		CreateRequest	true	"Role data"
 // @Security	BearerAuth
-// @Success	201	{object}	utils.Response{data=Role}
+// @Success	201	{object}	utils.Response{data=models.Role}
 // @Failure	400		{object}	utils.ErrorResponse
 // @Failure	401	{object}	utils.ErrorResponse
 // @Failure	403	{object}	utils.ErrorResponse
@@ -95,7 +95,7 @@ func (h *Handler) Create(c *gin.Context) {
 // @Param		id		path		string			true	"Role ID"
 // @Param		body	body		UpdateRequest	true	"Role data"
 // @Security	BearerAuth
-// @Success	200	{object}	utils.Response{data=Role}
+// @Success	200	{object}	utils.Response{data=models.Role}
 // @Failure	400		{object}	utils.ErrorResponse
 // @Failure	401	{object}	utils.ErrorResponse
 // @Failure	403	{object}	utils.ErrorResponse

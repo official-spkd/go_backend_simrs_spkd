@@ -689,6 +689,30 @@ definitions:
     - QueueCalled
     - QueueSkipped
     - QueueDone
+  models.Role:
+    properties:
+      created_at:
+        type: string
+      description:
+        example: Medical doctor
+        type: string
+      display_name:
+        example: Doctor
+        type: string
+      id:
+        example: 3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71
+        format: uuid
+        type: string
+      is_system:
+        description: built-in roles cannot be deleted
+        example: true
+        type: boolean
+      name:
+        example: doctor
+        type: string
+      updated_at:
+        type: string
+    type: object
   models.SatuSehatStatus:
     enum:
     - NotSent
@@ -1223,30 +1247,6 @@ definitions:
     required:
     - display_name
     - name
-    type: object
-  roles.Role:
-    properties:
-      created_at:
-        type: string
-      description:
-        example: Medical doctor
-        type: string
-      display_name:
-        example: Doctor
-        type: string
-      id:
-        example: 3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71
-        format: uuid
-        type: string
-      is_system:
-        description: built-in roles cannot be deleted
-        example: true
-        type: boolean
-      name:
-        example: doctor
-        type: string
-      updated_at:
-        type: string
     type: object
   roles.UpdateRequest:
     properties:
@@ -3343,7 +3343,7 @@ paths:
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/roles.Role'
+                    $ref: '#/definitions/models.Role'
                   type: array
               type: object
         "401":
@@ -3380,7 +3380,7 @@ paths:
             - $ref: '#/definitions/utils.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/roles.Role'
+                  $ref: '#/definitions/models.Role'
               type: object
         "400":
           description: Bad Request
@@ -3460,7 +3460,7 @@ paths:
             - $ref: '#/definitions/utils.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/roles.Role'
+                  $ref: '#/definitions/models.Role'
               type: object
         "400":
           description: Bad Request
@@ -3509,7 +3509,7 @@ paths:
             - $ref: '#/definitions/utils.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/roles.Role'
+                  $ref: '#/definitions/models.Role'
               type: object
         "400":
           description: Bad Request

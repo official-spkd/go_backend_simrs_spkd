@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"sort"
 	"time"
+
+	"gin-quickstart/internal/platform/models"
 )
 
 // VitalRequest saves the vital signs and initial assessment of a visit. Send version 0 when
@@ -79,7 +81,7 @@ type VitalResponse struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-func toVitalResponse(v *VitalAssessment) VitalResponse {
+func toVitalResponse(v *models.VitalAssessment) VitalResponse {
 	return VitalResponse{
 		VisitID:          v.VisitID.String(),
 		MeasuredByUserID: v.MeasuredByUserID.String(),
@@ -147,7 +149,7 @@ func changedFields(before, after string) []string {
 	return changed
 }
 
-func toVersionSummary(v VitalVersion, previous *VitalVersion) VersionSummary {
+func toVersionSummary(v models.VitalVersion, previous *models.VitalVersion) VersionSummary {
 	s := VersionSummary{
 		Version:         v.Version,
 		ChangeReason:    v.ChangeReason,

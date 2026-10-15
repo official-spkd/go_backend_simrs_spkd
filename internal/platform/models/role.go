@@ -1,4 +1,4 @@
-package roles
+package models
 
 import (
 	"time"
@@ -14,22 +14,4 @@ type Role struct {
 	IsSystem    bool      `gorm:"not null;default:false" json:"is_system" example:"true"` // built-in roles cannot be deleted
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
-}
-
-const (
-	Superadmin  = "superadmin"
-	Doctor      = "doctor"
-	FrontOffice = "front_office"
-	IT          = "it"
-	Pharmacist  = "pharmacist"
-)
-
-func Defaults() []Role {
-	return []Role{
-		{Name: Superadmin, DisplayName: "Superadmin", Description: "Highest privilege; manages users and roles", IsSystem: true},
-		{Name: Doctor, DisplayName: "Doctor", Description: "Medical doctor", IsSystem: true},
-		{Name: FrontOffice, DisplayName: "Front Office", Description: "Registration and reception staff", IsSystem: true},
-		{Name: IT, DisplayName: "IT", Description: "IT support staff", IsSystem: true},
-		{Name: Pharmacist, DisplayName: "Pharmacist", Description: "Pharmacy staff", IsSystem: true},
-	}
 }
