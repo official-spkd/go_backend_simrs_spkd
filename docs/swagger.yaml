@@ -379,6 +379,50 @@ definitions:
         example: 104dd35e-2b3a-4b2a-b38c-8bdd0e1ecc79
         type: string
     type: object
+  examinations.VersionDetail:
+    properties:
+      change_reason:
+        example: 'Re-measured: cuff was too small'
+        type: string
+      changed_at:
+        type: string
+      changed_by_user_id:
+        example: 5b815a95-e4d9-40c1-bfc0-dccbe1f38722
+        type: string
+      changed_fields:
+        example:
+        - systolic_bp
+        - diastolic_bp
+        items:
+          type: string
+        type: array
+      version:
+        example: 2
+        type: integer
+      vital_signs:
+        $ref: '#/definitions/examinations.VitalResponse'
+    type: object
+  examinations.VersionSummary:
+    properties:
+      change_reason:
+        example: 'Re-measured: cuff was too small'
+        type: string
+      changed_at:
+        type: string
+      changed_by_user_id:
+        example: 5b815a95-e4d9-40c1-bfc0-dccbe1f38722
+        type: string
+      changed_fields:
+        example:
+        - systolic_bp
+        - diastolic_bp
+        items:
+          type: string
+        type: array
+      version:
+        example: 2
+        type: integer
+    type: object
   examinations.VisitSummary:
     properties:
       doctor:
@@ -420,6 +464,13 @@ definitions:
           text alone is not an answer.
         example: Penicillin, shrimp
         maxLength: 1000
+        type: string
+      change_reason:
+        description: |-
+          ChangeReason explains why saved vital signs are being changed or corrected. It is required
+          when updating (it creates a new version) and optional on the first save.
+        example: 'Re-measured: cuff was too small'
+        maxLength: 500
         type: string
       chief_complaint:
         example: Fever and cough for three days
@@ -2588,11 +2639,12 @@ paths:
       consumes:
       - application/json
       description: Doctor only (own visits). Creates the record on the first call
-        (version 0) and updates it afterwards (send the current version, otherwise
-        409). BMI and its Kemenkes RI category are computed by the server (category
-        is not_applicable under 18 years); flags are advisory. Not allowed once the
-        SOAP note is final, for cancelled visits, or for visits scheduled for a later
-        date. Either list allergies or set no_known_allergies.
+        (version 0). Every later change creates a new version in the history and needs
+        a change_reason (and the current version, otherwise 409); a request that changes
+        nothing is rejected. BMI and its Kemenkes RI category are computed by the
+        server (category is not_applicable under 18 years); flags are advisory. Not
+        allowed once the SOAP note is final, for cancelled visits, or for visits scheduled
+        for a later date. Either list allergies or set no_known_allergies.
       parameters:
       - description: Visit ID
         in: path
@@ -2640,6 +2692,100 @@ paths:
       security:
       - BearerAuth: []
       summary: Save the vital signs and initial assessment
+      tags:
+      - examinations
+  /api/v1/examinations/{visit_id}/vital-signs/versions:
+    get:
+      description: Doctor only (own visits). Every saved version, newest first, with
+        the reason, who made it, when, and which fields differ from the version before.
+        404 until the vital signs have been saved.
+      parameters:
+      - description: Visit ID
+        in: path
+        name: visit_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/examinations.VersionSummary'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List the vital signs history
+      tags:
+      - examinations
+  /api/v1/examinations/{visit_id}/vital-signs/versions/{version}:
+    get:
+      description: Doctor only (own visits). The vital signs exactly as they were
+        in that version, plus the reason and the fields that changed.
+      parameters:
+      - description: Visit ID
+        in: path
+        name: visit_id
+        required: true
+        type: string
+      - description: Version number
+        in: path
+        name: version
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/examinations.VersionDetail'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get one version of the vital signs
       tags:
       - examinations
   /api/v1/patients:

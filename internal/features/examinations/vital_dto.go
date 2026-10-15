@@ -1,6 +1,11 @@
 package examinations
 
-import "time"
+import (
+	"encoding/json"
+	"reflect"
+	"sort"
+	"time"
+)
 
 // VitalRequest saves the vital signs and initial assessment of a visit. Send version 0 when
 // creating and the current version when updating.
@@ -27,6 +32,10 @@ type VitalRequest struct {
 	NoKnownAllergies bool   `json:"no_known_allergies" example:"false"`
 
 	ChiefComplaint string `json:"chief_complaint" binding:"required,notblank,max=1000" example:"Fever and cough for three days"`
+
+	// ChangeReason explains why saved vital signs are being changed or corrected. It is required
+	// when updating (it creates a new version) and optional on the first save.
+	ChangeReason string `json:"change_reason" binding:"omitempty,notblank,max=500" example:"Re-measured: cuff was too small"`
 
 	Version int `json:"version" binding:"gte=0" example:"0"`
 }
@@ -97,4 +106,57 @@ func toVitalResponse(v *VitalAssessment) VitalResponse {
 		Version:          v.Version,
 		UpdatedAt:        v.UpdatedAt,
 	}
+}
+
+// VersionSummary is one entry of the history. changed_fields lists what differs from the version
+// before it; it is empty for the first version.
+type VersionSummary struct {
+	Version         int       `json:"version" example:"2"`
+	ChangeReason    string    `json:"change_reason" example:"Re-measured: cuff was too small"`
+	ChangedByUserID string    `json:"changed_by_user_id" example:"5b815a95-e4d9-40c1-bfc0-dccbe1f38722"`
+	ChangedAt       time.Time `json:"changed_at"`
+	ChangedFields   []string  `json:"changed_fields" example:"systolic_bp,diastolic_bp"`
+}
+
+// VersionDetail is a history entry together with the vital signs exactly as they were then.
+type VersionDetail struct {
+	VersionSummary
+	VitalSigns VitalResponse `json:"vital_signs"`
+}
+
+// derivedFields are recomputed from other fields or describe the save itself, so they are not
+// reported as changes.
+var derivedFields = map[string]bool{
+	"visit_id": true, "measured_by_user_id": true, "measured_at": true, "version": true,
+	"updated_at": true, "flags": true, "pain_category": true, "bmi": true, "bmi_category": true,
+}
+
+// changedFields compares two JSON snapshots and returns the names of the fields that differ.
+func changedFields(before, after string) []string {
+	var a, b map[string]any
+	if json.Unmarshal([]byte(before), &a) != nil || json.Unmarshal([]byte(after), &b) != nil {
+		return []string{}
+	}
+	changed := []string{}
+	for k, v := range b {
+		if !derivedFields[k] && !reflect.DeepEqual(a[k], v) {
+			changed = append(changed, k)
+		}
+	}
+	sort.Strings(changed)
+	return changed
+}
+
+func toVersionSummary(v VitalVersion, previous *VitalVersion) VersionSummary {
+	s := VersionSummary{
+		Version:         v.Version,
+		ChangeReason:    v.ChangeReason,
+		ChangedByUserID: v.ChangedByUserID.String(),
+		ChangedAt:       v.ChangedAt,
+		ChangedFields:   []string{},
+	}
+	if previous != nil {
+		s.ChangedFields = changedFields(previous.Snapshot, v.Snapshot)
+	}
+	return s
 }

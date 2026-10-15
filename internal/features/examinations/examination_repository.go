@@ -14,6 +14,7 @@ import (
 
 var (
 	ErrVitalNotFound   = errors.New("vital signs have not been recorded for this visit")
+	ErrVersionNotFound = errors.New("vital signs version not found")
 	ErrSoapNotFound    = errors.New("soap note has not been started for this visit")
 	ErrVersionConflict = errors.New("the record was changed by someone else; reload and try again")
 	ErrFinalized       = errors.New("the soap note is finalized and can no longer be changed")
@@ -23,8 +24,11 @@ var (
 type Repository interface {
 	FindVital(ctx context.Context, visitID uuid.UUID) (*VitalAssessment, error)
 	// SaveVital creates the record when expectedVersion is nil, otherwise updates it only if the
-	// stored version still equals *expectedVersion.
-	SaveVital(ctx context.Context, v *VitalAssessment, expectedVersion *int) error
+	// stored version still equals *expectedVersion. It also appends entry to the version history;
+	// baseline (the state being replaced) is added first if that record has no history yet.
+	SaveVital(ctx context.Context, v *VitalAssessment, expectedVersion *int, entry VitalVersion, baseline *VitalVersion) error
+	ListVitalVersions(ctx context.Context, vitalID uuid.UUID) ([]VitalVersion, error)
+	FindVitalVersion(ctx context.Context, vitalID uuid.UUID, version int) (*VitalVersion, error)
 
 	FindSoap(ctx context.Context, visitID uuid.UUID) (*SoapNote, error)
 	// SaveSoap saves a draft with its diagnoses and moves a registered visit to Served.
@@ -54,26 +58,63 @@ func (r *repository) FindVital(ctx context.Context, visitID uuid.UUID) (*VitalAs
 	return &v, nil
 }
 
-func (r *repository) SaveVital(ctx context.Context, v *VitalAssessment, expectedVersion *int) error {
-	if expectedVersion == nil {
-		err := r.db.WithContext(ctx).Omit(clause.Associations).Create(v).Error
-		if errors.Is(err, gorm.ErrDuplicatedKey) {
-			return ErrVersionConflict
+func (r *repository) SaveVital(ctx context.Context, v *VitalAssessment, expectedVersion *int, entry VitalVersion, baseline *VitalVersion) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if expectedVersion == nil {
+			err := tx.Omit(clause.Associations).Create(v).Error
+			if errors.Is(err, gorm.ErrDuplicatedKey) {
+				return ErrVersionConflict
+			}
+			if err != nil {
+				return err
+			}
+		} else {
+			res := tx.Model(&VitalAssessment{}).
+				Where("id = ? AND version = ?", v.ID, *expectedVersion).
+				Select("*").Omit("id", "visit_id", "created_at", clause.Associations).
+				Updates(v)
+			if res.Error != nil {
+				return res.Error
+			}
+			if res.RowsAffected == 0 {
+				return ErrVersionConflict
+			}
 		}
-		return err
-	}
 
-	res := r.db.WithContext(ctx).Model(&VitalAssessment{}).
-		Where("id = ? AND version = ?", v.ID, *expectedVersion).
-		Select("*").Omit("id", "visit_id", "created_at", clause.Associations).
-		Updates(v)
-	if res.Error != nil {
-		return res.Error
+		if baseline != nil {
+			var existing int64
+			if err := tx.Model(&VitalVersion{}).Where("vital_assessment_id = ?", v.ID).Count(&existing).Error; err != nil {
+				return err
+			}
+			if existing == 0 {
+				baseline.VitalAssessmentID = v.ID
+				if err := tx.Create(baseline).Error; err != nil {
+					return err
+				}
+			}
+		}
+
+		entry.VitalAssessmentID = v.ID
+		return tx.Create(&entry).Error
+	})
+}
+
+func (r *repository) ListVitalVersions(ctx context.Context, vitalID uuid.UUID) ([]VitalVersion, error) {
+	var out []VitalVersion
+	err := r.db.WithContext(ctx).Where("vital_assessment_id = ?", vitalID).Order("version DESC").Find(&out).Error
+	return out, err
+}
+
+func (r *repository) FindVitalVersion(ctx context.Context, vitalID uuid.UUID, version int) (*VitalVersion, error) {
+	var vv VitalVersion
+	err := r.db.WithContext(ctx).First(&vv, "vital_assessment_id = ? AND version = ?", vitalID, version).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, ErrVersionNotFound
 	}
-	if res.RowsAffected == 0 {
-		return ErrVersionConflict
+	if err != nil {
+		return nil, err
 	}
-	return nil
+	return &vv, nil
 }
 
 func (r *repository) FindSoap(ctx context.Context, visitID uuid.UUID) (*SoapNote, error) {

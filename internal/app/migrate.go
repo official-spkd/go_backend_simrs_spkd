@@ -17,7 +17,7 @@ func migrate(db *gorm.DB) error {
 		return fmt.Errorf("create sequence: %w", err)
 	}
 	if err := db.AutoMigrate(&roles.Role{}, &models.Poli{}, &models.Doctor{}, &models.User{}, &models.Patient{}, &models.Visit{}, &models.Counter{}, &models.Queue{},
-		&examinations.VitalAssessment{}, &examinations.SoapNote{}, &examinations.SoapDiagnosis{}, &examinations.SoapAddendum{}); err != nil {
+		&examinations.VitalAssessment{}, &examinations.VitalVersion{}, &examinations.SoapNote{}, &examinations.SoapDiagnosis{}, &examinations.SoapAddendum{}); err != nil {
 		return fmt.Errorf("migrate: %w", err)
 	}
 

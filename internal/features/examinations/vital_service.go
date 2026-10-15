@@ -2,6 +2,7 @@ package examinations
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"math"
 	"strings"
@@ -56,24 +57,49 @@ func (s *service) SaveVitals(ctx context.Context, visitID uuid.UUID, req VitalRe
 	}
 	v.BMI, v.BMICategory = bmi(v.HeightCM, v.WeightKG, utils.AgeOn(visit.Patient.BirthDate, visit.VisitDate))
 
+	now := time.Now()
+	v.UpdatedAt = now
+	reason := strings.TrimSpace(req.ChangeReason)
+
 	existing, err := s.repo.FindVital(ctx, visitID)
 	switch {
 	case errors.Is(err, ErrVitalNotFound):
 		if req.Version != 0 {
 			return nil, ErrVersionConflict
 		}
-		err = s.repo.SaveVital(ctx, v, nil)
+		entry, err := newVersion(v, reason, actor.UserID, now)
+		if err != nil {
+			return nil, err
+		}
+		err = s.repo.SaveVital(ctx, v, nil, entry, nil)
+		if err != nil {
+			return nil, err
+		}
 	case err != nil:
 		return nil, err
 	default:
 		if req.Version != existing.Version {
 			return nil, ErrVersionConflict
 		}
+		if reason == "" {
+			return nil, InputError("change_reason is required when changing saved vital signs")
+		}
 		v.ID, v.CreatedAt, v.Version = existing.ID, existing.CreatedAt, existing.Version+1
-		err = s.repo.SaveVital(ctx, v, &existing.Version)
-	}
-	if err != nil {
-		return nil, err
+
+		entry, err := newVersion(v, reason, actor.UserID, now)
+		if err != nil {
+			return nil, err
+		}
+		baseline, err := newVersion(existing, "Recorded before version history existed", existing.MeasuredByUserID, existing.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		if len(changedFields(baseline.Snapshot, entry.Snapshot)) == 0 {
+			return nil, InputError("nothing changed; there is no new version to save")
+		}
+		if err := s.repo.SaveVital(ctx, v, &existing.Version, entry, &baseline); err != nil {
+			return nil, err
+		}
 	}
 	return v, nil
 }
@@ -192,4 +218,74 @@ func roundPtr(v *float64, places int) *float64 {
 	}
 	r := round(*v, places)
 	return &r
+}
+
+// newVersion captures the vital signs as they are in v, for the history.
+func newVersion(v *VitalAssessment, reason string, userID uuid.UUID, at time.Time) (VitalVersion, error) {
+	snapshot, err := json.Marshal(toVitalResponse(v))
+	if err != nil {
+		return VitalVersion{}, err
+	}
+	return VitalVersion{
+		Version:         v.Version,
+		Snapshot:        string(snapshot),
+		ChangeReason:    reason,
+		ChangedByUserID: userID,
+		ChangedAt:       at,
+	}, nil
+}
+
+func (s *service) ListVitalVersions(ctx context.Context, visitID uuid.UUID, actor *utils.TokenClaims) ([]VersionSummary, error) {
+	vital, err := s.vitalOf(ctx, visitID, actor)
+	if err != nil {
+		return nil, err
+	}
+	versions, err := s.repo.ListVitalVersions(ctx, vital.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]VersionSummary, len(versions))
+	for i := range versions {
+		var previous *VitalVersion
+		if i+1 < len(versions) { // versions are newest first
+			previous = &versions[i+1]
+		}
+		out[i] = toVersionSummary(versions[i], previous)
+	}
+	return out, nil
+}
+
+func (s *service) GetVitalVersion(ctx context.Context, visitID uuid.UUID, version int, actor *utils.TokenClaims) (*VersionDetail, error) {
+	vital, err := s.vitalOf(ctx, visitID, actor)
+	if err != nil {
+		return nil, err
+	}
+	found, err := s.repo.FindVitalVersion(ctx, vital.ID, version)
+	if err != nil {
+		return nil, err
+	}
+
+	var previous *VitalVersion
+	if version > 0 {
+		if p, err := s.repo.FindVitalVersion(ctx, vital.ID, version-1); err == nil {
+			previous = p
+		} else if !errors.Is(err, ErrVersionNotFound) {
+			return nil, err
+		}
+	}
+
+	var snapshot VitalResponse
+	if err := json.Unmarshal([]byte(found.Snapshot), &snapshot); err != nil {
+		return nil, err
+	}
+	return &VersionDetail{VersionSummary: toVersionSummary(*found, previous), VitalSigns: snapshot}, nil
+}
+
+// vitalOf checks access to the visit and returns its vital signs record.
+func (s *service) vitalOf(ctx context.Context, visitID uuid.UUID, actor *utils.TokenClaims) (*VitalAssessment, error) {
+	if _, err := s.authorize(ctx, visitID, actor, false); err != nil {
+		return nil, err
+	}
+	return s.repo.FindVital(ctx, visitID)
 }

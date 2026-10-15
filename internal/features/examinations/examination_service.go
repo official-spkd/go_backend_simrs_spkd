@@ -55,6 +55,8 @@ type Service interface {
 
 	GetVitals(ctx context.Context, visitID uuid.UUID, actor *utils.TokenClaims) (*VitalAssessment, error)
 	SaveVitals(ctx context.Context, visitID uuid.UUID, req VitalRequest, actor *utils.TokenClaims) (*VitalAssessment, error)
+	ListVitalVersions(ctx context.Context, visitID uuid.UUID, actor *utils.TokenClaims) ([]VersionSummary, error)
+	GetVitalVersion(ctx context.Context, visitID uuid.UUID, version int, actor *utils.TokenClaims) (*VersionDetail, error)
 
 	GetSoap(ctx context.Context, visitID uuid.UUID, actor *utils.TokenClaims) (*SoapView, error)
 	SaveSoap(ctx context.Context, visitID uuid.UUID, req SoapRequest, actor *utils.TokenClaims) (*SoapView, error)

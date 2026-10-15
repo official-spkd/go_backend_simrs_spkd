@@ -1598,7 +1598,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Doctor only (own visits). Creates the record on the first call (version 0) and updates it afterwards (send the current version, otherwise 409). BMI and its Kemenkes RI category are computed by the server (category is not_applicable under 18 years); flags are advisory. Not allowed once the SOAP note is final, for cancelled visits, or for visits scheduled for a later date. Either list allergies or set no_known_allergies.",
+                "description": "Doctor only (own visits). Creates the record on the first call (version 0). Every later change creates a new version in the history and needs a change_reason (and the current version, otherwise 409); a request that changes nothing is rejected. BMI and its Kemenkes RI category are computed by the server (category is not_applicable under 18 years); flags are advisory. Not allowed once the SOAP note is final, for cancelled visits, or for visits scheduled for a later date. Either list allergies or set no_known_allergies.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1672,6 +1672,156 @@
                     },
                     "409": {
                         "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/examinations/{visit_id}/vital-signs/versions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Doctor only (own visits). Every saved version, newest first, with the reason, who made it, when, and which fields differ from the version before. 404 until the vital signs have been saved.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "examinations"
+                ],
+                "summary": "List the vital signs history",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Visit ID",
+                        "name": "visit_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/examinations.VersionSummary"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/examinations/{visit_id}/vital-signs/versions/{version}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Doctor only (own visits). The vital signs exactly as they were in that version, plus the reason and the fields that changed.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "examinations"
+                ],
+                "summary": "Get one version of the vital signs",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Visit ID",
+                        "name": "visit_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Version number",
+                        "name": "version",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/examinations.VersionDetail"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/utils.ErrorResponse"
                         }
@@ -4251,6 +4401,69 @@
                 }
             }
         },
+        "examinations.VersionDetail": {
+            "type": "object",
+            "properties": {
+                "change_reason": {
+                    "type": "string",
+                    "example": "Re-measured: cuff was too small"
+                },
+                "changed_at": {
+                    "type": "string"
+                },
+                "changed_by_user_id": {
+                    "type": "string",
+                    "example": "5b815a95-e4d9-40c1-bfc0-dccbe1f38722"
+                },
+                "changed_fields": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "systolic_bp",
+                        "diastolic_bp"
+                    ]
+                },
+                "version": {
+                    "type": "integer",
+                    "example": 2
+                },
+                "vital_signs": {
+                    "$ref": "#/definitions/examinations.VitalResponse"
+                }
+            }
+        },
+        "examinations.VersionSummary": {
+            "type": "object",
+            "properties": {
+                "change_reason": {
+                    "type": "string",
+                    "example": "Re-measured: cuff was too small"
+                },
+                "changed_at": {
+                    "type": "string"
+                },
+                "changed_by_user_id": {
+                    "type": "string",
+                    "example": "5b815a95-e4d9-40c1-bfc0-dccbe1f38722"
+                },
+                "changed_fields": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "systolic_bp",
+                        "diastolic_bp"
+                    ]
+                },
+                "version": {
+                    "type": "integer",
+                    "example": 2
+                }
+            }
+        },
         "examinations.VisitSummary": {
             "type": "object",
             "properties": {
@@ -4322,6 +4535,12 @@
                     "type": "string",
                     "maxLength": 1000,
                     "example": "Penicillin, shrimp"
+                },
+                "change_reason": {
+                    "description": "ChangeReason explains why saved vital signs are being changed or corrected. It is required\nwhen updating (it creates a new version) and optional on the first save.",
+                    "type": "string",
+                    "maxLength": 500,
+                    "example": "Re-measured: cuff was too small"
                 },
                 "chief_complaint": {
                     "type": "string",

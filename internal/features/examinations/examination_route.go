@@ -10,6 +10,8 @@ func RegisterRoutes(rg *gin.RouterGroup, h *Handler, middlewares ...gin.HandlerF
 
 	g.GET("/vital-signs", h.GetVitals)
 	g.PUT("/vital-signs", h.SaveVitals)
+	g.GET("/vital-signs/versions", h.ListVitalVersions)
+	g.GET("/vital-signs/versions/:version", h.GetVitalVersion)
 
 	g.GET("/soap-note", h.GetSoap)
 	g.PUT("/soap-note", h.SaveSoap)

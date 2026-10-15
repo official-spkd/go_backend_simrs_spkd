@@ -67,7 +67,7 @@ func (h *Handler) fail(c *gin.Context, err error) {
 		utils.AbortWithError(c, http.StatusBadRequest, err.Error())
 	case errors.As(err, &incomplete):
 		utils.AbortWithError(c, http.StatusUnprocessableEntity, err.Error())
-	case errors.Is(err, ErrVisitNotFound), errors.Is(err, ErrVitalNotFound), errors.Is(err, ErrSoapNotFound):
+	case errors.Is(err, ErrVisitNotFound), errors.Is(err, ErrVitalNotFound), errors.Is(err, ErrVersionNotFound), errors.Is(err, ErrSoapNotFound):
 		utils.AbortWithError(c, http.StatusNotFound, err.Error())
 	case errors.Is(err, ErrDoctorNotLinked), errors.Is(err, ErrNotYourVisit):
 		utils.AbortWithError(c, http.StatusForbidden, err.Error())

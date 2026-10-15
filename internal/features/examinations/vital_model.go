@@ -46,4 +46,18 @@ type VitalAssessment struct {
 	Version   int `gorm:"not null;default:0"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
+
+	Versions []VitalVersion `gorm:"foreignKey:VitalAssessmentID;constraint:OnDelete:CASCADE"`
+}
+
+// VitalVersion is the history of a VitalAssessment: one row per saved version, holding the full
+// state of that version, why it was made and by whom. Rows are only ever added.
+type VitalVersion struct {
+	ID                uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	VitalAssessmentID uuid.UUID `gorm:"type:uuid;not null;uniqueIndex:idx_vital_version,priority:1"`
+	Version           int       `gorm:"not null;uniqueIndex:idx_vital_version,priority:2"`
+	Snapshot          string    `gorm:"type:jsonb;not null"` // the VitalResponse of this version
+	ChangeReason      string    `gorm:"type:text;not null;default:''"`
+	ChangedByUserID   uuid.UUID `gorm:"type:uuid;not null"`
+	ChangedAt         time.Time `gorm:"not null"`
 }
