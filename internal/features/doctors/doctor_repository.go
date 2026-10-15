@@ -8,8 +8,6 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-
-	"gin-quickstart/internal/platform/database"
 )
 
 var (
@@ -40,7 +38,7 @@ func (r *repository) Create(ctx context.Context, d *Doctor) error {
 		if err := tx.Omit("Poli").Create(d).Error; err != nil {
 			return err
 		}
-		return database.RecountPoliDoctors(tx, d.PoliID)
+		return recountPoliDoctors(tx, d.PoliID)
 	})
 	return translate(err)
 }
@@ -59,7 +57,7 @@ func (r *repository) Update(ctx context.Context, d *Doctor) error {
 		if err := tx.Omit("Poli").Save(d).Error; err != nil {
 			return err
 		}
-		return database.RecountPoliDoctors(tx, old.PoliID, d.PoliID)
+		return recountPoliDoctors(tx, old.PoliID, d.PoliID)
 	})
 	return translate(err)
 }
@@ -77,7 +75,7 @@ func (r *repository) Delete(ctx context.Context, id uuid.UUID) error {
 		if err := tx.Delete(&d).Error; err != nil {
 			return err
 		}
-		return database.RecountPoliDoctors(tx, d.PoliID)
+		return recountPoliDoctors(tx, d.PoliID)
 	})
 }
 
@@ -122,6 +120,23 @@ func (r *repository) List(ctx context.Context, q ListQuery) ([]Doctor, int64, er
 		return nil, 0, err
 	}
 	return out, total, nil
+}
+
+const recountSQL = `UPDATE polis SET doctor_count =
+	(SELECT COUNT(*) FROM doctors WHERE doctors.poli_id = polis.id AND doctors.is_active)`
+
+// recountPoliDoctors recalculates doctor_count of the given polis from the active doctors.
+// Call it inside the same transaction as the doctor change.
+func recountPoliDoctors(tx *gorm.DB, poliIDs ...uuid.UUID) error {
+	if len(poliIDs) == 0 {
+		return nil
+	}
+	return tx.Exec(recountSQL+" WHERE polis.id IN ?", poliIDs).Error
+}
+
+// RecountAllPoliDoctors recalculates doctor_count of every poli; used at startup to repair drift.
+func RecountAllPoliDoctors(db *gorm.DB) error {
+	return db.Exec(recountSQL).Error
 }
 
 func translate(err error) error {

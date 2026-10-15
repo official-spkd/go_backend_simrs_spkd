@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"gin-quickstart/internal/platform/database"
 	"gin-quickstart/internal/platform/models"
 )
 
@@ -33,16 +32,8 @@ func NewRepository(db *gorm.DB) Repository {
 }
 
 func (r *repository) Create(ctx context.Context, u *models.User) error {
-	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// The poli already exists; do not let GORM try to upsert it.
-		if err := tx.Omit("Poli").Create(u).Error; err != nil {
-			return err
-		}
-		if u.PoliID != nil {
-			return database.RecountPoliDoctors(tx, *u.PoliID)
-		}
-		return nil
-	})
+	// The poli already exists; do not let GORM try to upsert it.
+	err := r.db.WithContext(ctx).Omit("Poli").Create(u).Error
 	if errors.Is(err, gorm.ErrDuplicatedKey) {
 		return ErrAlreadyExists
 	}

@@ -7,7 +7,6 @@ import (
 
 	"gin-quickstart/internal/features/doctors"
 	"gin-quickstart/internal/features/roles"
-	"gin-quickstart/internal/platform/database"
 	"gin-quickstart/internal/platform/models"
 )
 
@@ -39,7 +38,7 @@ func migrate(db *gorm.DB) error {
 	}
 
 	// doctor_count is derived from active doctors, so refresh it for every poli.
-	if err := database.RecountAllPoliDoctors(db); err != nil {
+	if err := doctors.RecountAllPoliDoctors(db); err != nil {
 		return fmt.Errorf("recount poli doctors: %w", err)
 	}
 
