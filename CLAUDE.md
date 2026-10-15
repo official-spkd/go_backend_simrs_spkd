@@ -125,7 +125,8 @@ Defaults: `page=1`, `limit=20` (max 100). `prev_page` / `next_page` are `null` a
 
 - Connection comes from `DB_*` env vars. Never hard-code credentials or DSNs.
 - GORM runs with `TranslateError: true`; rely on `gorm.ErrDuplicatedKey` and similar.
-- Schema is managed by `AutoMigrate` in `internal/app/app.go`. Register new models there, referenced tables first.
+- Schema is managed by `AutoMigrate` in `internal/app/migrate.go`. Register new models there, referenced tables first. That file holds only permanent, idempotent startup steps (sequences, expression indexes, derived-data repair).
+- **One-off or cleanup SQL** (data fixes, backfills, dropping unused columns or tables) never goes into a file, migration, or Go code. Give the exact SQL in your reply so the user runs it by hand, and do not commit it.
 - Primary keys are UUIDs: `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`.
 - `AutoMigrate` cannot change a column's type. Tell the user a manual migration is needed. **Never drop or reset the user's tables without explicit confirmation.**
 - Seeds must be idempotent (`OnConflict`).
