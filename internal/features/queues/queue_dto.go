@@ -50,9 +50,37 @@ type DoctorRef struct {
 	Specialization string `json:"specialization" example:"Internal Medicine"`
 }
 
+// PatientRef is the full patient record of the queued visit.
 type PatientRef struct {
-	MedicalRecordNumber string `json:"medical_record_number" example:"RM-000001"`
-	FullName            string `json:"full_name" example:"Siti Rahmawati"`
+	ID                  string        `json:"id" example:"3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71"`
+	MedicalRecordNumber string        `json:"medical_record_number" example:"RM-000001"`
+	NIK                 string        `json:"nik" example:"3171234567890001"`
+	FullName            string        `json:"full_name" example:"Siti Rahmawati"`
+	BirthDate           string        `json:"birth_date" example:"1990-05-17"`
+	Gender              models.Gender `json:"gender" enums:"Male,Female" example:"Female"`
+
+	BirthPlace    string `json:"birth_place" example:"Jakarta"`
+	Religion      string `json:"religion" example:"Islam"`
+	Education     string `json:"education" example:"Bachelor"`
+	Occupation    string `json:"occupation" example:"Teacher"`
+	MaritalStatus string `json:"marital_status" example:"Married"`
+	BloodType     string `json:"blood_type" example:"O"`
+	Allergies     string `json:"allergies" example:"Penicillin, peanuts"`
+
+	Phone string `json:"phone" example:"081234567890"`
+	Email string `json:"email" example:"siti@example.com"`
+
+	IDCardAddress   string `json:"id_card_address" example:"Jl. Melati No. 5, Jakarta Selatan"`
+	DomicileAddress string `json:"domicile_address" example:"Jl. Mawar No. 9, Depok"`
+
+	EmergencyContactName         string `json:"emergency_contact_name" example:"Budi Santoso"`
+	EmergencyContactRelationship string `json:"emergency_contact_relationship" example:"Husband"`
+	EmergencyContactPhone        string `json:"emergency_contact_phone" example:"081298765432"`
+
+	Payer models.Payer `json:"payer" enums:"General,BPJS,Insurance" example:"BPJS"`
+
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type QueueResponse struct {
@@ -119,10 +147,7 @@ func toQueueResponse(q *models.Queue) QueueResponse {
 		Poli:            poliRef(&q.Visit),
 		Doctor:          doctorRef(&q.Visit),
 		PoliQueueNumber: q.Visit.QueueNumber,
-		Patient: PatientRef{
-			MedicalRecordNumber: q.Visit.Patient.MedicalRecordNumber,
-			FullName:            q.Visit.Patient.FullName,
-		},
+		Patient:         patientRef(&q.Visit.Patient),
 
 		CalledAt:         q.CalledAt,
 		LastCalledAt:     q.LastCalledAt,
@@ -173,4 +198,32 @@ func doctorRef(v *models.Visit) DoctorRef {
 		return DoctorRef{Name: v.DoctorName()}
 	}
 	return DoctorRef{ID: v.Doctor.ID.String(), Name: v.Doctor.Name, Specialization: v.Doctor.Specialization}
+}
+
+func patientRef(p *models.Patient) PatientRef {
+	return PatientRef{
+		ID:                           p.ID.String(),
+		MedicalRecordNumber:          p.MedicalRecordNumber,
+		NIK:                          p.NIK,
+		FullName:                     p.FullName,
+		BirthDate:                    p.BirthDate.Format(dateLayout),
+		Gender:                       p.Gender,
+		BirthPlace:                   p.BirthPlace,
+		Religion:                     p.Religion,
+		Education:                    p.Education,
+		Occupation:                   p.Occupation,
+		MaritalStatus:                p.MaritalStatus,
+		BloodType:                    p.BloodType,
+		Allergies:                    p.Allergies,
+		Phone:                        p.Phone,
+		Email:                        p.Email,
+		IDCardAddress:                p.IDCardAddress,
+		DomicileAddress:              p.DomicileAddress,
+		EmergencyContactName:         p.EmergencyContactName,
+		EmergencyContactRelationship: p.EmergencyContactRelationship,
+		EmergencyContactPhone:        p.EmergencyContactPhone,
+		Payer:                        p.Payer,
+		CreatedAt:                    p.CreatedAt,
+		UpdatedAt:                    p.UpdatedAt,
+	}
 }

@@ -574,11 +574,81 @@ definitions:
     type: object
   queues.PatientRef:
     properties:
+      allergies:
+        example: Penicillin, peanuts
+        type: string
+      birth_date:
+        example: "1990-05-17"
+        type: string
+      birth_place:
+        example: Jakarta
+        type: string
+      blood_type:
+        example: O
+        type: string
+      created_at:
+        type: string
+      domicile_address:
+        example: Jl. Mawar No. 9, Depok
+        type: string
+      education:
+        example: Bachelor
+        type: string
+      email:
+        example: siti@example.com
+        type: string
+      emergency_contact_name:
+        example: Budi Santoso
+        type: string
+      emergency_contact_phone:
+        example: "081298765432"
+        type: string
+      emergency_contact_relationship:
+        example: Husband
+        type: string
       full_name:
         example: Siti Rahmawati
         type: string
+      gender:
+        allOf:
+        - $ref: '#/definitions/models.Gender'
+        enum:
+        - Male
+        - Female
+        example: Female
+      id:
+        example: 3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71
+        type: string
+      id_card_address:
+        example: Jl. Melati No. 5, Jakarta Selatan
+        type: string
+      marital_status:
+        example: Married
+        type: string
       medical_record_number:
         example: RM-000001
+        type: string
+      nik:
+        example: "3171234567890001"
+        type: string
+      occupation:
+        example: Teacher
+        type: string
+      payer:
+        allOf:
+        - $ref: '#/definitions/models.Payer'
+        enum:
+        - General
+        - BPJS
+        - Insurance
+        example: BPJS
+      phone:
+        example: "081234567890"
+        type: string
+      religion:
+        example: Islam
+        type: string
+      updated_at:
         type: string
     type: object
   queues.PoliRef:

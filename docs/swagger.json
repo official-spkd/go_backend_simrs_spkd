@@ -3951,13 +3951,112 @@
         "queues.PatientRef": {
             "type": "object",
             "properties": {
+                "allergies": {
+                    "type": "string",
+                    "example": "Penicillin, peanuts"
+                },
+                "birth_date": {
+                    "type": "string",
+                    "example": "1990-05-17"
+                },
+                "birth_place": {
+                    "type": "string",
+                    "example": "Jakarta"
+                },
+                "blood_type": {
+                    "type": "string",
+                    "example": "O"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "domicile_address": {
+                    "type": "string",
+                    "example": "Jl. Mawar No. 9, Depok"
+                },
+                "education": {
+                    "type": "string",
+                    "example": "Bachelor"
+                },
+                "email": {
+                    "type": "string",
+                    "example": "siti@example.com"
+                },
+                "emergency_contact_name": {
+                    "type": "string",
+                    "example": "Budi Santoso"
+                },
+                "emergency_contact_phone": {
+                    "type": "string",
+                    "example": "081298765432"
+                },
+                "emergency_contact_relationship": {
+                    "type": "string",
+                    "example": "Husband"
+                },
                 "full_name": {
                     "type": "string",
                     "example": "Siti Rahmawati"
                 },
+                "gender": {
+                    "enum": [
+                        "Male",
+                        "Female"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.Gender"
+                        }
+                    ],
+                    "example": "Female"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71"
+                },
+                "id_card_address": {
+                    "type": "string",
+                    "example": "Jl. Melati No. 5, Jakarta Selatan"
+                },
+                "marital_status": {
+                    "type": "string",
+                    "example": "Married"
+                },
                 "medical_record_number": {
                     "type": "string",
                     "example": "RM-000001"
+                },
+                "nik": {
+                    "type": "string",
+                    "example": "3171234567890001"
+                },
+                "occupation": {
+                    "type": "string",
+                    "example": "Teacher"
+                },
+                "payer": {
+                    "enum": [
+                        "General",
+                        "BPJS",
+                        "Insurance"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.Payer"
+                        }
+                    ],
+                    "example": "BPJS"
+                },
+                "phone": {
+                    "type": "string",
+                    "example": "081234567890"
+                },
+                "religion": {
+                    "type": "string",
+                    "example": "Islam"
+                },
+                "updated_at": {
+                    "type": "string"
                 }
             }
         },
