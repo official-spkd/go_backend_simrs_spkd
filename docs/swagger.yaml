@@ -915,6 +915,18 @@ definitions:
     - visit_date
     - visit_type
     type: object
+  visits.DoctorRef:
+    properties:
+      id:
+        example: 9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93
+        type: string
+      name:
+        example: dr. Andi Wijaya, Sp.PD
+        type: string
+      specialization:
+        example: Internal Medicine
+        type: string
+    type: object
   visits.PatientSummary:
     properties:
       birth_date:
@@ -946,6 +958,21 @@ definitions:
         example: "081234567890"
         type: string
     type: object
+  visits.PoliRef:
+    properties:
+      id:
+        example: 3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71
+        type: string
+      name:
+        example: General Clinic
+        type: string
+      prefix_code:
+        example: UMUM
+        type: string
+      room:
+        example: Room 101
+        type: string
+    type: object
   visits.Response:
     properties:
       allergies:
@@ -967,12 +994,7 @@ definitions:
       created_at:
         type: string
       doctor:
-        example: dr. Andi Wijaya
-        type: string
-      doctor_id:
-        description: empty for visits registered before doctors were managed
-        example: 9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93
-        type: string
+        $ref: '#/definitions/visits.DoctorRef'
       document_type:
         example: Referral letter
         type: string
@@ -1000,12 +1022,7 @@ definitions:
         - asuransi
         example: bpjs
       poli:
-        example: General Clinic
-        type: string
-      poli_id:
-        description: empty for visits registered before polis were managed
-        example: 3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71
-        type: string
+        $ref: '#/definitions/visits.PoliRef'
       policy_number:
         example: POL-2026-001234
         type: string

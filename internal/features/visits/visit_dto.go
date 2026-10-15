@@ -3,8 +3,6 @@ package visits
 import (
 	"time"
 
-	"github.com/google/uuid"
-
 	"gin-quickstart/internal/platform/models"
 )
 
@@ -62,6 +60,23 @@ type ListQuery struct {
 	Limit           int
 }
 
+// PoliRef is looked up from polis. Visits registered before polis were managed only have a name;
+// their id, prefix_code and room are empty.
+type PoliRef struct {
+	ID         string `json:"id" example:"3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71"`
+	PrefixCode string `json:"prefix_code" example:"UMUM"`
+	Name       string `json:"name" example:"General Clinic"`
+	Room       string `json:"room" example:"Room 101"`
+}
+
+// DoctorRef is looked up from doctors. Visits registered before doctors were managed only have a
+// name; their id and specialization are empty.
+type DoctorRef struct {
+	ID             string `json:"id" example:"9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93"`
+	Name           string `json:"name" example:"dr. Andi Wijaya, Sp.PD"`
+	Specialization string `json:"specialization" example:"Internal Medicine"`
+}
+
 type PatientSummary struct {
 	ID                  string        `json:"id" example:"3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71"`
 	MedicalRecordNumber string        `json:"medical_record_number" example:"RM-000001"`
@@ -74,13 +89,11 @@ type PatientSummary struct {
 }
 
 type Response struct {
-	ID          string `json:"id" example:"9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93"`
-	QueueNumber string `json:"queue_number" example:"001"`
-	VisitDate   string `json:"visit_date" example:"2026-10-20"`
-	PoliID      string `json:"poli_id" example:"3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71"` // empty for visits registered before polis were managed
-	Poli        string `json:"poli" example:"General Clinic"`
-	DoctorID    string `json:"doctor_id" example:"9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93"` // empty for visits registered before doctors were managed
-	Doctor      string `json:"doctor" example:"dr. Andi Wijaya"`
+	ID          string    `json:"id" example:"9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93"`
+	QueueNumber string    `json:"queue_number" example:"001"`
+	VisitDate   string    `json:"visit_date" example:"2026-10-20"`
+	Poli        PoliRef   `json:"poli"`
+	Doctor      DoctorRef `json:"doctor"`
 
 	Penjamin        models.Penjamin        `json:"penjamin" enums:"umum,bpjs,asuransi" example:"bpjs"`
 	VisitType       models.VisitType       `json:"visit_type" enums:"baru,kontrol" example:"baru"`
@@ -116,10 +129,8 @@ func toResponse(v *models.Visit) Response {
 		ID:                  v.ID.String(),
 		QueueNumber:         v.QueueNumber,
 		VisitDate:           v.VisitDate.Format(dateLayout),
-		PoliID:              idString(v.PoliID),
-		Poli:                v.PoliName(),
-		DoctorID:            idString(v.DoctorID),
-		Doctor:              v.DoctorName(),
+		Poli:                poliRef(v),
+		Doctor:              doctorRef(v),
 		Penjamin:            v.Penjamin,
 		VisitType:           v.VisitType,
 		VisitStatus:         v.VisitStatus,
@@ -151,9 +162,16 @@ func toResponse(v *models.Visit) Response {
 	}
 }
 
-func idString(id *uuid.UUID) string {
-	if id == nil {
-		return ""
+func poliRef(v *models.Visit) PoliRef {
+	if v.Poli == nil {
+		return PoliRef{Name: v.PoliName()}
 	}
-	return id.String()
+	return PoliRef{ID: v.Poli.ID.String(), PrefixCode: v.Poli.PrefixCode, Name: v.Poli.Name, Room: v.Poli.Room}
+}
+
+func doctorRef(v *models.Visit) DoctorRef {
+	if v.Doctor == nil {
+		return DoctorRef{Name: v.DoctorName()}
+	}
+	return DoctorRef{ID: v.Doctor.ID.String(), Name: v.Doctor.Name, Specialization: v.Doctor.Specialization}
 }

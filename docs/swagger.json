@@ -4413,6 +4413,23 @@
                 }
             }
         },
+        "visits.DoctorRef": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "example": "9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "dr. Andi Wijaya, Sp.PD"
+                },
+                "specialization": {
+                    "type": "string",
+                    "example": "Internal Medicine"
+                }
+            }
+        },
         "visits.PatientSummary": {
             "type": "object",
             "properties": {
@@ -4458,6 +4475,27 @@
                 }
             }
         },
+        "visits.PoliRef": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "example": "3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "General Clinic"
+                },
+                "prefix_code": {
+                    "type": "string",
+                    "example": "UMUM"
+                },
+                "room": {
+                    "type": "string",
+                    "example": "Room 101"
+                }
+            }
+        },
         "visits.Response": {
             "type": "object",
             "properties": {
@@ -4486,13 +4524,7 @@
                     "type": "string"
                 },
                 "doctor": {
-                    "type": "string",
-                    "example": "dr. Andi Wijaya"
-                },
-                "doctor_id": {
-                    "description": "empty for visits registered before doctors were managed",
-                    "type": "string",
-                    "example": "9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93"
+                    "$ref": "#/definitions/visits.DoctorRef"
                 },
                 "document_type": {
                     "type": "string",
@@ -4532,13 +4564,7 @@
                     "example": "bpjs"
                 },
                 "poli": {
-                    "type": "string",
-                    "example": "General Clinic"
-                },
-                "poli_id": {
-                    "description": "empty for visits registered before polis were managed",
-                    "type": "string",
-                    "example": "3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71"
+                    "$ref": "#/definitions/visits.PoliRef"
                 },
                 "policy_number": {
                     "type": "string",
