@@ -3,6 +3,8 @@ package queues
 import (
 	"time"
 
+	"github.com/google/uuid"
+
 	"gin-quickstart/internal/platform/models"
 )
 
@@ -44,7 +46,9 @@ type QueueResponse struct {
 	Counter     *CounterRef         `json:"counter"`
 
 	VisitID         string     `json:"visit_id" example:"104dd35e-2b3a-4b2a-b38c-8bdd0e1ecc79"`
+	PoliID          string     `json:"poli_id" example:"3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71"` // empty for visits registered before polis were managed
 	Poli            string     `json:"poli" example:"General Clinic"`
+	DoctorID        string     `json:"doctor_id" example:"9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93"` // empty for visits registered before doctors were managed
 	Doctor          string     `json:"doctor" example:"dr. Andi Wijaya"`
 	PoliQueueNumber string     `json:"poli_queue_number" example:"001"`
 	Patient         PatientRef `json:"patient"`
@@ -97,8 +101,10 @@ func toQueueResponse(q *models.Queue) QueueResponse {
 		Status:      q.Status,
 
 		VisitID:         q.VisitID.String(),
-		Poli:            q.Visit.Poli,
-		Doctor:          q.Visit.Doctor,
+		PoliID:          idString(q.Visit.PoliID),
+		Poli:            q.Visit.PoliName(),
+		DoctorID:        idString(q.Visit.DoctorID),
+		Doctor:          q.Visit.DoctorName(),
 		PoliQueueNumber: q.Visit.QueueNumber,
 		Patient: PatientRef{
 			MedicalRecordNumber: q.Visit.Patient.MedicalRecordNumber,
@@ -140,4 +146,11 @@ func toDisplayCounter(s counterState) DisplayCounter {
 		}
 	}
 	return out
+}
+
+func idString(id *uuid.UUID) string {
+	if id == nil {
+		return ""
+	}
+	return id.String()
 }

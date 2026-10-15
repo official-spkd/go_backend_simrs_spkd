@@ -14,7 +14,7 @@ import (
 
 var (
 	ErrNotFound      = models.ErrDoctorNotFound
-	ErrInUse         = errors.New("doctor is still linked to a user account")
+	ErrInUse         = errors.New("doctor is still referenced by a user account or visits")
 	ErrAlreadyExists = errors.New("sip, str or ihs number is already registered")
 )
 

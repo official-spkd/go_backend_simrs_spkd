@@ -35,15 +35,15 @@ func NewRepository(db *gorm.DB) Repository {
 func (r *repository) Create(ctx context.Context, v *models.Visit) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Serialize registrations per clinic and date so queue numbers are gap-free and unique.
-		lockKey := v.VisitDate.Format(dateLayout) + "|" + strings.ToLower(v.Poli)
+		lockKey := v.VisitDate.Format(dateLayout) + "|" + v.PoliID.String()
 		if err := tx.Exec("SELECT pg_advisory_xact_lock(hashtext(?))", lockKey).Error; err != nil {
 			return err
 		}
 
 		var duplicates int64
 		err := tx.Model(&models.Visit{}).
-			Where("patient_id = ? AND visit_date = ? AND LOWER(poli) = LOWER(?) AND visit_status <> ?",
-				v.PatientID, v.VisitDate, v.Poli, models.VisitCancelled).
+			Where("patient_id = ? AND visit_date = ? AND poli_id = ? AND visit_status <> ?",
+				v.PatientID, v.VisitDate, v.PoliID, models.VisitCancelled).
 			Count(&duplicates).Error
 		if err != nil {
 			return err
@@ -54,7 +54,7 @@ func (r *repository) Create(ctx context.Context, v *models.Visit) error {
 
 		var last int
 		err = tx.Model(&models.Visit{}).
-			Where("visit_date = ? AND LOWER(poli) = LOWER(?)", v.VisitDate, v.Poli).
+			Where("visit_date = ? AND poli_id = ?", v.VisitDate, v.PoliID).
 			Select("COALESCE(MAX(queue_sequence), 0)").Scan(&last).Error
 		if err != nil {
 			return err
@@ -117,8 +117,11 @@ func (r *repository) List(ctx context.Context, q ListQuery) ([]models.Visit, int
 	if q.Date != nil {
 		tx = tx.Where("visit_date = ?", *q.Date)
 	}
-	if q.Poli != "" {
-		tx = tx.Where("LOWER(poli) = LOWER(?)", q.Poli)
+	if q.DoctorID != "" {
+		tx = tx.Where("doctor_id = ?", q.DoctorID)
+	}
+	if q.PoliID != "" {
+		tx = tx.Where("poli_id = ?", q.PoliID)
 	}
 	if q.Penjamin != "" {
 		tx = tx.Where("payer = ?", q.Penjamin)
@@ -143,7 +146,7 @@ func (r *repository) List(ctx context.Context, q ListQuery) ([]models.Visit, int
 
 	var out []models.Visit
 	err := r.withPatient(tx).
-		Order("visit_date DESC, poli, queue_sequence").
+		Order("visit_date DESC, poli_id, queue_sequence").
 		Limit(q.Limit).Offset((q.Page - 1) * q.Limit).
 		Find(&out).Error
 	if err != nil {
@@ -154,7 +157,7 @@ func (r *repository) List(ctx context.Context, q ListQuery) ([]models.Visit, int
 
 // withPatient preloads the patient, including soft-deleted ones, so history stays readable.
 func (r *repository) withPatient(tx *gorm.DB) *gorm.DB {
-	return tx.Preload("Patient", func(db *gorm.DB) *gorm.DB { return db.Unscoped() })
+	return tx.Preload("Poli").Preload("Doctor").Preload("Patient", func(db *gorm.DB) *gorm.DB { return db.Unscoped() })
 }
 
 func escapeLike(s string) string {

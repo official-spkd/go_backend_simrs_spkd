@@ -585,6 +585,10 @@ definitions:
       doctor:
         example: dr. Andi Wijaya
         type: string
+      doctor_id:
+        description: empty for visits registered before doctors were managed
+        example: 9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93
+        type: string
       id:
         example: 9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93
         type: string
@@ -594,6 +598,10 @@ definitions:
         $ref: '#/definitions/queues.PatientRef'
       poli:
         example: General Clinic
+        type: string
+      poli_id:
+        description: empty for visits registered before polis were managed
+        example: 3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71
         type: string
       poli_queue_number:
         example: "001"
@@ -845,9 +853,8 @@ definitions:
         example: 15000000
         minimum: 0
         type: integer
-      doctor:
-        example: dr. Andi Wijaya
-        maxLength: 150
+      doctor_id:
+        example: 9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93
         type: string
       document_type:
         example: Referral letter
@@ -877,9 +884,8 @@ definitions:
         - bpjs
         - asuransi
         example: bpjs
-      poli:
-        example: General Clinic
-        maxLength: 100
+      poli_id:
+        example: 3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71
         type: string
       policy_number:
         example: POL-2026-001234
@@ -902,10 +908,10 @@ definitions:
         example: baru
     required:
     - chief_complaint
-    - doctor
+    - doctor_id
     - patient_id
     - penjamin
-    - poli
+    - poli_id
     - visit_date
     - visit_type
     type: object
@@ -963,6 +969,10 @@ definitions:
       doctor:
         example: dr. Andi Wijaya
         type: string
+      doctor_id:
+        description: empty for visits registered before doctors were managed
+        example: 9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93
+        type: string
       document_type:
         example: Referral letter
         type: string
@@ -991,6 +1001,10 @@ definitions:
         example: bpjs
       poli:
         example: General Clinic
+        type: string
+      poli_id:
+        description: empty for visits registered before polis were managed
+        example: 3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71
         type: string
       policy_number:
         example: POL-2026-001234
@@ -1607,8 +1621,9 @@ paths:
       - doctors
   /api/v1/doctors/{id}:
     delete:
-      description: Superadmin only. A doctor that a user account is linked to cannot
-        be deleted (409). The poli's doctor count is updated automatically.
+      description: Superadmin only. A doctor that a user account or a visit refers
+        to cannot be deleted (409); deactivate the doctor instead. The poli's doctor
+        count is updated automatically.
       parameters:
       - description: Doctor ID
         in: path
@@ -2077,8 +2092,9 @@ paths:
       - polis
   /api/v1/polis/{id}:
     delete:
-      description: Superadmin only. A poli that doctors are assigned to cannot be
-        deleted (409). Existing visits keep their clinic name, so history is not affected.
+      description: Superadmin only. A poli that doctors or visits refer to cannot
+        be deleted (409). Existing visits keep their clinic name, so history is not
+        affected.
       parameters:
       - description: Poli ID
         in: path
@@ -2819,9 +2835,13 @@ paths:
         in: query
         name: date
         type: string
-      - description: Clinic name
+      - description: Only visits of this poli
         in: query
-        name: poli
+        name: poli_id
+        type: string
+      - description: Only visits of this doctor
+        in: query
+        name: doctor_id
         type: string
       - description: Penjamin
         enum:
@@ -2908,10 +2928,12 @@ paths:
     post:
       consumes:
       - application/json
-      description: Front Office only. The patient must already be registered; pass
-        their patient_id. Queue numbers restart at 001 for each clinic and date. BPJS
-        fields are required when penjamin is bpjs and insurance fields when it is
-        asuransi; they are rejected for any other penjamin.
+      description: Front Office only. The patient (patient_id), poli (poli_id) and
+        an active doctor (doctor_id) must already exist, and the doctor must work
+        in that poli. Names are looked up from polis and doctors, never stored on
+        the visit. Queue numbers restart at 001 for each clinic and date. BPJS fields
+        are required when penjamin is bpjs and insurance fields when it is asuransi;
+        they are rejected for any other penjamin.
       parameters:
       - description: Registration data
         in: body

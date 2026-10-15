@@ -16,12 +16,22 @@ var (
 	ErrPatientNotFound = models.ErrPatientNotFound
 	ErrVisitDateInPast = errors.New("visit_date cannot be in the past")
 
+	ErrDoctorNotFound     = models.ErrDoctorNotFound
+	ErrDoctorInactive     = errors.New("doctor is not active")
+	ErrDoctorPoliMismatch = errors.New("the doctor does not work in this poli")
+	ErrPoliInactive       = errors.New("poli is not active")
+
 	ErrResponsiblePersonRequired = errors.New("responsible_person is required for patients under 18")
 )
 
 // PatientFinder is satisfied by the patients feature's service.
 type PatientFinder interface {
 	Get(ctx context.Context, id uuid.UUID) (*models.Patient, error)
+}
+
+// DoctorFinder is satisfied by the doctors feature's service. The returned doctor includes its poli.
+type DoctorFinder interface {
+	Get(ctx context.Context, id uuid.UUID) (*models.Doctor, error)
 }
 
 type Service interface {
@@ -33,10 +43,11 @@ type Service interface {
 type service struct {
 	repo     Repository
 	patients PatientFinder
+	doctors  DoctorFinder
 }
 
-func NewService(repo Repository, patients PatientFinder) Service {
-	return &service{repo: repo, patients: patients}
+func NewService(repo Repository, patients PatientFinder, doctors DoctorFinder) Service {
+	return &service{repo: repo, patients: patients, doctors: doctors}
 }
 
 func (s *service) Create(ctx context.Context, req CreateRequest) (*models.Visit, error) {
@@ -57,6 +68,11 @@ func (s *service) Create(ctx context.Context, req CreateRequest) (*models.Visit,
 		return nil, err
 	}
 
+	doctor, err := s.activeDoctor(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
 	responsible := strings.TrimSpace(req.ResponsiblePerson)
 	if responsible == "" && ageOn(patient.BirthDate, visitDate) < adultAge {
 		return nil, ErrResponsiblePersonRequired
@@ -71,8 +87,10 @@ func (s *service) Create(ctx context.Context, req CreateRequest) (*models.Visit,
 		PatientID:         patient.ID,
 		Patient:           *patient,
 		VisitDate:         visitDate,
-		Poli:              strings.TrimSpace(req.Poli),
-		Doctor:            strings.TrimSpace(req.Doctor),
+		PoliID:            &doctor.PoliID,
+		Poli:              doctor.Poli,
+		DoctorID:          &doctor.ID,
+		Doctor:            doctor,
 		Penjamin:          req.Penjamin,
 		VisitType:         req.VisitType,
 		VisitStatus:       models.VisitRegistered,
@@ -96,7 +114,6 @@ func (s *service) Get(ctx context.Context, id uuid.UUID) (*models.Visit, error) 
 
 func (s *service) List(ctx context.Context, q ListQuery) ([]Response, int64, error) {
 	q.Search = strings.TrimSpace(q.Search)
-	q.Poli = strings.TrimSpace(q.Poli)
 
 	found, total, err := s.repo.List(ctx, q)
 	if err != nil {
@@ -134,4 +151,26 @@ func ageOn(birthDate, on time.Time) int {
 		age--
 	}
 	return age
+}
+
+// activeDoctor loads the requested doctor and checks that they can take a visit in the requested poli.
+func (s *service) activeDoctor(ctx context.Context, req CreateRequest) (*models.Doctor, error) {
+	id, err := uuid.Parse(req.DoctorID)
+	if err != nil {
+		return nil, ErrDoctorNotFound
+	}
+	doctor, err := s.doctors.Get(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if !doctor.IsActive {
+		return nil, ErrDoctorInactive
+	}
+	if doctor.PoliID.String() != strings.ToLower(strings.TrimSpace(req.PoliID)) {
+		return nil, ErrDoctorPoliMismatch
+	}
+	if !doctor.Poli.IsActive {
+		return nil, ErrPoliInactive
+	}
+	return doctor, nil
 }

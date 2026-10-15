@@ -55,11 +55,20 @@ type Visit struct {
 	PatientID uuid.UUID `gorm:"type:uuid;not null;index"`
 	Patient   Patient   `gorm:"foreignKey:PatientID"`
 
-	VisitDate     time.Time `gorm:"type:date;not null;index;uniqueIndex:idx_visits_queue,priority:1"`
-	Poli          string    `gorm:"size:100;not null;uniqueIndex:idx_visits_queue,priority:2"`
-	QueueSequence int       `gorm:"not null;uniqueIndex:idx_visits_queue,priority:3"`
-	QueueNumber   string    `gorm:"size:10;not null"`
-	Doctor        string    `gorm:"size:150;not null"`
+	VisitDate time.Time `gorm:"type:date;not null;index;uniqueIndex:idx_visits_poli_queue,priority:1"`
+	// PoliID and DoctorID are the source of truth; names are always looked up from polis and
+	// doctors. Both are NULL only for visits registered before they became managed entities.
+	PoliID        *uuid.UUID `gorm:"type:uuid;index;uniqueIndex:idx_visits_poli_queue,priority:2"`
+	Poli          *Poli      `gorm:"foreignKey:PoliID"`
+	QueueSequence int        `gorm:"not null;uniqueIndex:idx_visits_poli_queue,priority:3"`
+	QueueNumber   string     `gorm:"size:10;not null"`
+	DoctorID      *uuid.UUID `gorm:"type:uuid;index"`
+	Doctor        *Doctor    `gorm:"foreignKey:DoctorID"`
+
+	// LegacyPoli and LegacyDoctor hold the clinic and doctor text of old visits. New visits leave
+	// them empty.
+	LegacyPoli   *string `gorm:"column:poli;size:100"`
+	LegacyDoctor *string `gorm:"column:doctor;size:150"`
 
 	// Penjamin keeps the original "payer" column name so existing databases migrate in place.
 	Penjamin        Penjamin        `gorm:"column:payer;size:20;not null"`
@@ -87,4 +96,26 @@ type Visit struct {
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
+}
+
+// PoliName is the clinic name from polis, or the stored text for legacy visits.
+func (v *Visit) PoliName() string {
+	if v.Poli != nil {
+		return v.Poli.Name
+	}
+	if v.LegacyPoli != nil {
+		return *v.LegacyPoli
+	}
+	return ""
+}
+
+// DoctorName is the doctor name from doctors, or the stored text for legacy visits.
+func (v *Visit) DoctorName() string {
+	if v.Doctor != nil {
+		return v.Doctor.Name
+	}
+	if v.LegacyDoctor != nil {
+		return *v.LegacyDoctor
+	}
+	return ""
 }

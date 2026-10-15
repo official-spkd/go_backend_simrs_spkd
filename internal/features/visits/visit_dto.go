@@ -3,6 +3,8 @@ package visits
 import (
 	"time"
 
+	"github.com/google/uuid"
+
 	"gin-quickstart/internal/platform/models"
 )
 
@@ -12,8 +14,8 @@ type CreateRequest struct {
 	PatientID string `json:"patient_id" binding:"required,uuid" example:"3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71"`
 
 	VisitDate string `json:"visit_date" binding:"required,datetime=2006-01-02" example:"2026-10-20"`
-	Poli      string `json:"poli" binding:"required,notblank,max=100" example:"General Clinic"`
-	Doctor    string `json:"doctor" binding:"required,notblank,max=150" example:"dr. Andi Wijaya"`
+	PoliID    string `json:"poli_id" binding:"required,uuid" example:"3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71"`
+	DoctorID  string `json:"doctor_id" binding:"required,uuid" example:"9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93"`
 
 	Penjamin          models.Penjamin  `json:"penjamin" binding:"required,oneof=umum bpjs asuransi" enums:"umum,bpjs,asuransi" example:"bpjs"`
 	VisitType         models.VisitType `json:"visit_type" binding:"required,oneof=baru kontrol" enums:"baru,kontrol" example:"baru"`
@@ -37,7 +39,8 @@ type CreateRequest struct {
 type ListRequest struct {
 	Search          string                 `form:"search" json:"search" binding:"omitempty,max=100"`
 	Date            string                 `form:"date" json:"date" binding:"omitempty,datetime=2006-01-02"`
-	Poli            string                 `form:"poli" json:"poli" binding:"omitempty,max=100"`
+	PoliID          string                 `form:"poli_id" json:"poli_id" binding:"omitempty,uuid"`
+	DoctorID        string                 `form:"doctor_id" json:"doctor_id" binding:"omitempty,uuid"`
 	Penjamin        models.Penjamin        `form:"penjamin" json:"penjamin" binding:"omitempty,oneof=umum bpjs asuransi"`
 	VisitType       models.VisitType       `form:"visit_type" json:"visit_type" binding:"omitempty,oneof=baru kontrol"`
 	VisitStatus     models.VisitStatus     `form:"visit_status" json:"visit_status" binding:"omitempty,oneof=Registered Served Completed Paid Cancelled"`
@@ -48,7 +51,8 @@ type ListRequest struct {
 type ListQuery struct {
 	Search          string
 	Date            *time.Time
-	Poli            string
+	PoliID          string
+	DoctorID        string
 	Penjamin        models.Penjamin
 	VisitType       models.VisitType
 	VisitStatus     models.VisitStatus
@@ -73,7 +77,9 @@ type Response struct {
 	ID          string `json:"id" example:"9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93"`
 	QueueNumber string `json:"queue_number" example:"001"`
 	VisitDate   string `json:"visit_date" example:"2026-10-20"`
+	PoliID      string `json:"poli_id" example:"3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71"` // empty for visits registered before polis were managed
 	Poli        string `json:"poli" example:"General Clinic"`
+	DoctorID    string `json:"doctor_id" example:"9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93"` // empty for visits registered before doctors were managed
 	Doctor      string `json:"doctor" example:"dr. Andi Wijaya"`
 
 	Penjamin        models.Penjamin        `json:"penjamin" enums:"umum,bpjs,asuransi" example:"bpjs"`
@@ -110,8 +116,10 @@ func toResponse(v *models.Visit) Response {
 		ID:                  v.ID.String(),
 		QueueNumber:         v.QueueNumber,
 		VisitDate:           v.VisitDate.Format(dateLayout),
-		Poli:                v.Poli,
-		Doctor:              v.Doctor,
+		PoliID:              idString(v.PoliID),
+		Poli:                v.PoliName(),
+		DoctorID:            idString(v.DoctorID),
+		Doctor:              v.DoctorName(),
 		Penjamin:            v.Penjamin,
 		VisitType:           v.VisitType,
 		VisitStatus:         v.VisitStatus,
@@ -141,4 +149,11 @@ func toResponse(v *models.Visit) Response {
 		CreatedAt: v.CreatedAt,
 		UpdatedAt: v.UpdatedAt,
 	}
+}
+
+func idString(id *uuid.UUID) string {
+	if id == nil {
+		return ""
+	}
+	return id.String()
 }

@@ -13,7 +13,7 @@ import (
 
 var (
 	ErrNotFound      = models.ErrPoliNotFound
-	ErrInUse         = errors.New("poli is still assigned to doctors")
+	ErrInUse         = errors.New("poli is still referenced by doctors or visits")
 	ErrAlreadyExists = errors.New("a poli with this prefix code or name already exists")
 )
 

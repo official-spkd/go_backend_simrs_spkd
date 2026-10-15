@@ -132,7 +132,7 @@ func (h *Handler) Update(c *gin.Context) {
 }
 
 // @Summary		Delete a doctor
-// @Description	Superadmin only. A doctor that a user account is linked to cannot be deleted (409). The poli's doctor count is updated automatically.
+// @Description	Superadmin only. A doctor that a user account or a visit refers to cannot be deleted (409); deactivate the doctor instead. The poli's doctor count is updated automatically.
 // @Tags			doctors
 // @Produce		json
 // @Security		BearerAuth

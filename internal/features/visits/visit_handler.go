@@ -19,7 +19,7 @@ func NewHandler(service Service) *Handler {
 }
 
 // @Summary		Register a patient to the queue
-// @Description	Front Office only. The patient must already be registered; pass their patient_id. Queue numbers restart at 001 for each clinic and date. BPJS fields are required when penjamin is bpjs and insurance fields when it is asuransi; they are rejected for any other penjamin.
+// @Description	Front Office only. The patient (patient_id), poli (poli_id) and an active doctor (doctor_id) must already exist, and the doctor must work in that poli. Names are looked up from polis and doctors, never stored on the visit. Queue numbers restart at 001 for each clinic and date. BPJS fields are required when penjamin is bpjs and insurance fields when it is asuransi; they are rejected for any other penjamin.
 // @Tags			visits
 // @Accept			json
 // @Produce		json
@@ -52,7 +52,8 @@ func (h *Handler) Create(c *gin.Context) {
 // @Security		BearerAuth
 // @Param			search				query		string	false	"Search by patient name, NIK or medical record number"
 // @Param			date				query		string	false	"Visit date (YYYY-MM-DD)"
-// @Param			poli				query		string	false	"Clinic name"
+// @Param			poli_id				query		string	false	"Only visits of this poli"
+// @Param			doctor_id			query		string	false	"Only visits of this doctor"
 // @Param			penjamin			query		string	false	"Penjamin"				Enums(umum, bpjs, asuransi)
 // @Param			visit_type			query		string	false	"Visit type"			Enums(baru, kontrol)
 // @Param			visit_status		query		string	false	"Visit status"			Enums(Registered, Served, Completed, Paid, Cancelled)
@@ -72,7 +73,8 @@ func (h *Handler) List(c *gin.Context) {
 	}
 	q := ListQuery{
 		Search:          req.Search,
-		Poli:            req.Poli,
+		PoliID:          req.PoliID,
+		DoctorID:        req.DoctorID,
 		Penjamin:        req.Penjamin,
 		VisitType:       req.VisitType,
 		VisitStatus:     req.VisitStatus,
@@ -124,11 +126,12 @@ func (h *Handler) Get(c *gin.Context) {
 
 func (h *Handler) fail(c *gin.Context, err error) {
 	switch {
-	case errors.Is(err, ErrNotFound), errors.Is(err, ErrPatientNotFound):
+	case errors.Is(err, ErrNotFound), errors.Is(err, ErrPatientNotFound), errors.Is(err, ErrDoctorNotFound):
 		utils.AbortWithError(c, http.StatusNotFound, err.Error())
 	case errors.Is(err, ErrAlreadyRegistered):
 		utils.AbortWithError(c, http.StatusConflict, err.Error())
-	case errors.Is(err, ErrVisitDateInPast), errors.Is(err, ErrResponsiblePersonRequired):
+	case errors.Is(err, ErrVisitDateInPast), errors.Is(err, ErrResponsiblePersonRequired),
+		errors.Is(err, ErrDoctorInactive), errors.Is(err, ErrDoctorPoliMismatch), errors.Is(err, ErrPoliInactive):
 		utils.AbortWithError(c, http.StatusBadRequest, err.Error())
 	default:
 		utils.AbortWithError(c, http.StatusInternalServerError, "internal server error")

@@ -234,7 +234,7 @@ func (r *repository) findQueue(ctx context.Context, id uuid.UUID) (*models.Queue
 
 // withDetails loads the counter, visit and patient (soft-deleted patients included).
 func (r *repository) withDetails(tx *gorm.DB) *gorm.DB {
-	return tx.Preload("Counter").Preload("Visit").
+	return tx.Preload("Counter").Preload("Visit").Preload("Visit.Poli").Preload("Visit.Doctor").
 		Preload("Visit.Patient", func(db *gorm.DB) *gorm.DB { return db.Unscoped() })
 }
 

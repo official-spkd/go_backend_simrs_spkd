@@ -1073,7 +1073,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Superadmin only. A doctor that a user account is linked to cannot be deleted (409). The poli's doctor count is updated automatically.",
+                "description": "Superadmin only. A doctor that a user account or a visit refers to cannot be deleted (409); deactivate the doctor instead. The poli's doctor count is updated automatically.",
                 "produces": [
                     "application/json"
                 ],
@@ -1824,7 +1824,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Superadmin only. A poli that doctors are assigned to cannot be deleted (409). Existing visits keep their clinic name, so history is not affected.",
+                "description": "Superadmin only. A poli that doctors or visits refer to cannot be deleted (409). Existing visits keep their clinic name, so history is not affected.",
                 "produces": [
                     "application/json"
                 ],
@@ -2876,8 +2876,14 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Clinic name",
-                        "name": "poli",
+                        "description": "Only visits of this poli",
+                        "name": "poli_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Only visits of this doctor",
+                        "name": "doctor_id",
                         "in": "query"
                     },
                     {
@@ -2999,7 +3005,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Front Office only. The patient must already be registered; pass their patient_id. Queue numbers restart at 001 for each clinic and date. BPJS fields are required when penjamin is bpjs and insurance fields when it is asuransi; they are rejected for any other penjamin.",
+                "description": "Front Office only. The patient (patient_id), poli (poli_id) and an active doctor (doctor_id) must already exist, and the doctor must work in that poli. Names are looked up from polis and doctors, never stored on the visit. Queue numbers restart at 001 for each clinic and date. BPJS fields are required when penjamin is bpjs and insurance fields when it is asuransi; they are rejected for any other penjamin.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3958,6 +3964,11 @@ const docTemplate = `{
                     "type": "string",
                     "example": "dr. Andi Wijaya"
                 },
+                "doctor_id": {
+                    "description": "empty for visits registered before doctors were managed",
+                    "type": "string",
+                    "example": "9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93"
+                },
                 "id": {
                     "type": "string",
                     "example": "9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93"
@@ -3971,6 +3982,11 @@ const docTemplate = `{
                 "poli": {
                     "type": "string",
                     "example": "General Clinic"
+                },
+                "poli_id": {
+                    "description": "empty for visits registered before polis were managed",
+                    "type": "string",
+                    "example": "3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71"
                 },
                 "poli_queue_number": {
                     "type": "string",
@@ -4292,10 +4308,10 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "chief_complaint",
-                "doctor",
+                "doctor_id",
                 "patient_id",
                 "penjamin",
-                "poli",
+                "poli_id",
                 "visit_date",
                 "visit_type"
             ],
@@ -4326,10 +4342,9 @@ const docTemplate = `{
                     "minimum": 0,
                     "example": 15000000
                 },
-                "doctor": {
+                "doctor_id": {
                     "type": "string",
-                    "maxLength": 150,
-                    "example": "dr. Andi Wijaya"
+                    "example": "9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93"
                 },
                 "document_type": {
                     "type": "string",
@@ -4368,10 +4383,9 @@ const docTemplate = `{
                     ],
                     "example": "bpjs"
                 },
-                "poli": {
+                "poli_id": {
                     "type": "string",
-                    "maxLength": 100,
-                    "example": "General Clinic"
+                    "example": "3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71"
                 },
                 "policy_number": {
                     "type": "string",
@@ -4478,6 +4492,11 @@ const docTemplate = `{
                     "type": "string",
                     "example": "dr. Andi Wijaya"
                 },
+                "doctor_id": {
+                    "description": "empty for visits registered before doctors were managed",
+                    "type": "string",
+                    "example": "9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93"
+                },
                 "document_type": {
                     "type": "string",
                     "example": "Referral letter"
@@ -4518,6 +4537,11 @@ const docTemplate = `{
                 "poli": {
                     "type": "string",
                     "example": "General Clinic"
+                },
+                "poli_id": {
+                    "description": "empty for visits registered before polis were managed",
+                    "type": "string",
+                    "example": "3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71"
                 },
                 "policy_number": {
                     "type": "string",

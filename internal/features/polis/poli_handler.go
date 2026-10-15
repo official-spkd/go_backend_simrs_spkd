@@ -129,7 +129,7 @@ func (h *Handler) Update(c *gin.Context) {
 }
 
 // @Summary		Delete a poli
-// @Description	Superadmin only. A poli that doctors are assigned to cannot be deleted (409). Existing visits keep their clinic name, so history is not affected.
+// @Description	Superadmin only. A poli that doctors or visits refer to cannot be deleted (409). Existing visits keep their clinic name, so history is not affected.
 // @Tags			polis
 // @Produce		json
 // @Security		BearerAuth
