@@ -12,8 +12,8 @@ type LoginRequest struct {
 }
 
 // RegisterRequest creates a staff account. Role is ignored for the very first account,
-// which always becomes a superadmin. sip_number, str_number and poli_id are required when the
-// role is doctor and rejected for any other role.
+// which always becomes a superadmin. doctor_id is required when the role is doctor (the doctor
+// record must exist first) and rejected for any other role.
 type RegisterRequest struct {
 	Name     string `json:"name" binding:"required,max=150" example:"Dr. Jane Doe"`
 	NIP      string `json:"nip" binding:"required,max=30" example:"198001012010011001"`
@@ -21,22 +21,7 @@ type RegisterRequest struct {
 	Password string `json:"password" binding:"required,min=8,max=72" example:"s3cretPass!"`
 	Role     string `json:"role" example:"doctor"`
 
-	SIPNumber string `json:"sip_number" binding:"required_if=Role doctor,excluded_unless=Role doctor,omitempty,license_number,min=5,max=50" example:"446/001/SIP-D/2026"`
-	STRNumber string `json:"str_number" binding:"required_if=Role doctor,excluded_unless=Role doctor,omitempty,license_number,min=5,max=50" example:"3111100220123456"`
-	PoliID    string `json:"poli_id" binding:"required_if=Role doctor,excluded_unless=Role doctor,omitempty,uuid" example:"3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71"`
-}
-
-type PoliRef struct {
-	ID         string `json:"id" example:"3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71"`
-	PrefixCode string `json:"prefix_code" example:"UMUM"`
-	Name       string `json:"name" example:"General Clinic"`
-	Room       string `json:"room" example:"Room 101"`
-}
-
-type DoctorProfileResponse struct {
-	SIPNumber string  `json:"sip_number" example:"446/001/SIP-D/2026"`
-	STRNumber string  `json:"str_number" example:"3111100220123456"`
-	Poli      PoliRef `json:"poli"`
+	DoctorID string `json:"doctor_id" binding:"required_if=Role doctor,excluded_unless=Role doctor,omitempty,uuid" example:"9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93"`
 }
 
 type UserResponse struct {
@@ -48,8 +33,8 @@ type UserResponse struct {
 	IsActive  bool      `json:"is_active" example:"true"`
 	CreatedAt time.Time `json:"created_at"`
 
-	// Present only for doctors.
-	DoctorProfile *DoctorProfileResponse `json:"doctor_profile,omitempty"`
+	// Present only for doctor accounts.
+	DoctorID string `json:"doctor_id,omitempty" example:"9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93"`
 }
 
 type LoginResponse struct {
@@ -69,17 +54,8 @@ func toUserResponse(u *models.User) UserResponse {
 		IsActive:  u.IsActive,
 		CreatedAt: u.CreatedAt,
 	}
-	if u.PoliID != nil && u.Poli != nil && u.SIPNumber != nil && u.STRNumber != nil {
-		r.DoctorProfile = &DoctorProfileResponse{
-			SIPNumber: *u.SIPNumber,
-			STRNumber: *u.STRNumber,
-			Poli: PoliRef{
-				ID:         u.Poli.ID.String(),
-				PrefixCode: u.Poli.PrefixCode,
-				Name:       u.Poli.Name,
-				Room:       u.Poli.Room,
-			},
-		}
+	if u.DoctorID != nil {
+		r.DoctorID = u.DoctorID.String()
 	}
 	return r
 }

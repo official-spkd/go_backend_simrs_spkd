@@ -1,16 +1,5 @@
 basePath: /
 definitions:
-  auth.DoctorProfileResponse:
-    properties:
-      poli:
-        $ref: '#/definitions/auth.PoliRef'
-      sip_number:
-        example: 446/001/SIP-D/2026
-        type: string
-      str_number:
-        example: "3111100220123456"
-        type: string
-    type: object
   auth.LoginRequest:
     properties:
       identifier:
@@ -38,23 +27,11 @@ definitions:
       user:
         $ref: '#/definitions/auth.UserResponse'
     type: object
-  auth.PoliRef:
-    properties:
-      id:
-        example: 3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71
-        type: string
-      name:
-        example: General Clinic
-        type: string
-      prefix_code:
-        example: UMUM
-        type: string
-      room:
-        example: Room 101
-        type: string
-    type: object
   auth.RegisterRequest:
     properties:
+      doctor_id:
+        example: 9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93
+        type: string
       email:
         example: jane.doe@hospital.id
         maxLength: 150
@@ -72,21 +49,8 @@ definitions:
         maxLength: 72
         minLength: 8
         type: string
-      poli_id:
-        example: 3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71
-        type: string
       role:
         example: doctor
-        type: string
-      sip_number:
-        example: 446/001/SIP-D/2026
-        maxLength: 50
-        minLength: 5
-        type: string
-      str_number:
-        example: "3111100220123456"
-        maxLength: 50
-        minLength: 5
         type: string
     required:
     - email
@@ -98,10 +62,10 @@ definitions:
     properties:
       created_at:
         type: string
-      doctor_profile:
-        allOf:
-        - $ref: '#/definitions/auth.DoctorProfileResponse'
-        description: Present only for doctors.
+      doctor_id:
+        description: Present only for doctor accounts.
+        example: 9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93
+        type: string
       email:
         example: jane.doe@hospital.id
         type: string
@@ -722,32 +686,6 @@ definitions:
     required:
     - display_name
     type: object
-  users.DoctorProfileResponse:
-    properties:
-      poli:
-        $ref: '#/definitions/users.PoliRef'
-      sip_number:
-        example: 446/001/SIP-D/2026
-        type: string
-      str_number:
-        example: "3111100220123456"
-        type: string
-    type: object
-  users.PoliRef:
-    properties:
-      id:
-        example: 3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71
-        type: string
-      name:
-        example: General Clinic
-        type: string
-      prefix_code:
-        example: UMUM
-        type: string
-      room:
-        example: Room 101
-        type: string
-    type: object
   users.ResetPasswordRequest:
     properties:
       new_password:
@@ -762,10 +700,10 @@ definitions:
     properties:
       created_at:
         type: string
-      doctor_profile:
-        allOf:
-        - $ref: '#/definitions/users.DoctorProfileResponse'
-        description: Present only for doctors.
+      doctor_id:
+        description: Present only for doctor accounts.
+        example: 9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93
+        type: string
       email:
         example: jane.doe@hospital.id
         type: string
@@ -801,21 +739,6 @@ definitions:
         example: "198001012010011001"
         maxLength: 30
         type: string
-      poli_id:
-        example: 3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71
-        type: string
-      sip_number:
-        description: Doctors only; send just the fields to change. Rejected for any
-          other role.
-        example: 446/001/SIP-D/2026
-        maxLength: 50
-        minLength: 5
-        type: string
-      str_number:
-        example: "3111100220123456"
-        maxLength: 50
-        minLength: 5
-        type: string
     required:
     - email
     - name
@@ -823,21 +746,11 @@ definitions:
     type: object
   users.UpdateRoleRequest:
     properties:
-      poli_id:
-        example: 3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71
+      doctor_id:
+        example: 9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93
         type: string
       role:
         example: doctor
-        type: string
-      sip_number:
-        example: 446/001/SIP-D/2026
-        maxLength: 50
-        minLength: 5
-        type: string
-      str_number:
-        example: "3111100220123456"
-        maxLength: 50
-        minLength: 5
         type: string
     required:
     - role
@@ -1199,9 +1112,9 @@ paths:
       consumes:
       - application/json
       description: Open for the very first account (becomes superadmin). Afterwards
-        only a superadmin can register accounts. For role doctor, sip_number, str_number
-        and poli_id (an active poli from GET /polis) are required; for other roles
-        they are rejected.
+        only a superadmin can register accounts. For role doctor, doctor_id (an active
+        doctor from GET /doctors?has_account=false, one account per doctor) is required;
+        for other roles it is rejected.
       parameters:
       - description: User data
         in: body
@@ -1604,6 +1517,11 @@ paths:
         in: query
         name: is_active
         type: boolean
+      - description: false = only doctors without a login account yet (for the account
+          form)
+        in: query
+        name: has_account
+        type: boolean
       - default: 1
         description: Page number
         in: query
@@ -1689,7 +1607,8 @@ paths:
       - doctors
   /api/v1/doctors/{id}:
     delete:
-      description: Superadmin only. The poli's doctor count is updated automatically.
+      description: Superadmin only. A doctor that a user account is linked to cannot
+        be deleted (409). The poli's doctor count is updated automatically.
       parameters:
       - description: Doctor ID
         in: path
@@ -1717,6 +1636,10 @@ paths:
             $ref: '#/definitions/utils.ErrorResponse'
         "404":
           description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
       security:
@@ -2611,8 +2534,7 @@ paths:
       - users
   /api/v1/users/{id}:
     delete:
-      description: Superadmin only. You cannot delete your own account. Deleting a
-        doctor lowers their poli's doctor count.
+      description: Superadmin only. You cannot delete your own account.
       parameters:
       - description: User ID
         in: path
@@ -2689,9 +2611,7 @@ paths:
     put:
       consumes:
       - application/json
-      description: Superadmin only. Changes name, NIP and email. For doctors, sip_number,
-        str_number and poli_id may also be sent (only the fields to change); moving
-        a doctor to another poli updates both polis' doctor counts.
+      description: Superadmin only. Changes name, NIP and email.
       parameters:
       - description: User ID
         in: path
@@ -2789,8 +2709,8 @@ paths:
       consumes:
       - application/json
       description: Superadmin only. You cannot change your own role. Becoming a doctor
-        requires sip_number, str_number and poli_id; leaving the doctor role clears
-        them. The doctor count of the affected polis is updated automatically.
+        requires doctor_id (an active doctor without an account); leaving the doctor
+        role unlinks it.
       parameters:
       - description: User ID
         in: path
@@ -2840,8 +2760,7 @@ paths:
     patch:
       consumes:
       - application/json
-      description: Superadmin only. You cannot change your own status. Deactivating
-        a doctor lowers their poli's doctor count; activating raises it.
+      description: Superadmin only. You cannot change your own status.
       parameters:
       - description: User ID
         in: path

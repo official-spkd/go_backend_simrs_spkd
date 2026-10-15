@@ -14,20 +14,20 @@ import (
 )
 
 var (
-	ErrInvalidRole  = errors.New("role does not exist")
-	ErrSelfAction   = errors.New("you cannot change the role or status of, or delete, your own account")
-	ErrNotDoctor    = errors.New("sip_number, str_number and poli_id can only be set for doctors")
-	ErrPoliInactive = errors.New("poli is not active")
-	ErrPoliNotFound = models.ErrPoliNotFound
+	ErrInvalidRole = errors.New("role does not exist")
+	ErrSelfAction  = errors.New("you cannot change the role or status of, or delete, your own account")
+
+	ErrDoctorNotFound = models.ErrDoctorNotFound
+	ErrDoctorInactive = errors.New("doctor is not active")
 )
 
 type RoleFinder interface {
 	FindByName(ctx context.Context, name string) (*roles.Role, error)
 }
 
-// PoliFinder is satisfied by the polis feature's service.
-type PoliFinder interface {
-	Get(ctx context.Context, id uuid.UUID) (*models.Poli, error)
+// DoctorFinder is satisfied by the doctors feature's service.
+type DoctorFinder interface {
+	Get(ctx context.Context, id uuid.UUID) (*models.Doctor, error)
 }
 
 type Service interface {
@@ -41,13 +41,13 @@ type Service interface {
 }
 
 type service struct {
-	repo  Repository
-	roles RoleFinder
-	polis PoliFinder
+	repo    Repository
+	roles   RoleFinder
+	doctors DoctorFinder
 }
 
-func NewService(repo Repository, roles RoleFinder, polis PoliFinder) Service {
-	return &service{repo: repo, roles: roles, polis: polis}
+func NewService(repo Repository, roles RoleFinder, doctors DoctorFinder) Service {
+	return &service{repo: repo, roles: roles, doctors: doctors}
 }
 
 func (s *service) List(ctx context.Context, q ListQuery) ([]Response, int64, error) {
@@ -76,29 +76,6 @@ func (s *service) Update(ctx context.Context, id uuid.UUID, req UpdateRequest) (
 		"email": strings.ToLower(strings.TrimSpace(req.Email)),
 	}
 
-	if req.SIPNumber != "" || req.STRNumber != "" || req.PoliID != "" {
-		current, err := s.repo.FindByID(ctx, id)
-		if err != nil {
-			return nil, err
-		}
-		if current.Role.Name != roles.Doctor {
-			return nil, ErrNotDoctor
-		}
-		if req.SIPNumber != "" {
-			fields["sip_number"] = strings.TrimSpace(req.SIPNumber)
-		}
-		if req.STRNumber != "" {
-			fields["str_number"] = strings.TrimSpace(req.STRNumber)
-		}
-		if req.PoliID != "" {
-			poli, err := s.activePoli(ctx, req.PoliID)
-			if err != nil {
-				return nil, err
-			}
-			fields["poli_id"] = poli.ID
-		}
-	}
-
 	if err := s.repo.Update(ctx, id, fields); err != nil {
 		return nil, err
 	}
@@ -118,20 +95,14 @@ func (s *service) UpdateRole(ctx context.Context, actorID, id uuid.UUID, req Upd
 		return nil, err
 	}
 
-	fields := map[string]any{"role_id": role.ID}
+	fields := map[string]any{"role_id": role.ID, "doctor_id": nil}
 	if role.Name == roles.Doctor {
-		poli, err := s.activePoli(ctx, req.PoliID)
+		doctorID, err := s.activeDoctorID(ctx, req.DoctorID)
 		if err != nil {
 			return nil, err
 		}
-		fields["sip_number"] = strings.TrimSpace(req.SIPNumber)
-		fields["str_number"] = strings.TrimSpace(req.STRNumber)
-		fields["poli_id"] = poli.ID
-	} else {
-		// Leaving the doctor role clears the doctor-only fields.
-		fields["sip_number"], fields["str_number"], fields["poli_id"] = nil, nil, nil
+		fields["doctor_id"] = doctorID
 	}
-
 	if err := s.repo.Update(ctx, id, fields); err != nil {
 		return nil, err
 	}
@@ -163,17 +134,18 @@ func (s *service) Delete(ctx context.Context, actorID, id uuid.UUID) error {
 	return s.repo.Delete(ctx, id)
 }
 
-func (s *service) activePoli(ctx context.Context, rawID string) (*models.Poli, error) {
+// activeDoctorID checks that the doctor record exists and is active before an account is linked to it.
+func (s *service) activeDoctorID(ctx context.Context, rawID string) (*uuid.UUID, error) {
 	id, err := uuid.Parse(rawID)
 	if err != nil {
-		return nil, ErrPoliNotFound
+		return nil, ErrDoctorNotFound
 	}
-	poli, err := s.polis.Get(ctx, id)
+	doctor, err := s.doctors.Get(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	if !poli.IsActive {
-		return nil, ErrPoliInactive
+	if !doctor.IsActive {
+		return nil, ErrDoctorInactive
 	}
-	return poli, nil
+	return &doctor.ID, nil
 }

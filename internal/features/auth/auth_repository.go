@@ -13,7 +13,7 @@ import (
 
 var (
 	ErrUserNotFound  = errors.New("user not found")
-	ErrAlreadyExists = errors.New("nip, email, SIP number or STR number is already registered")
+	ErrAlreadyExists = errors.New("nip, email or doctor already has an account")
 )
 
 type Repository interface {
@@ -32,8 +32,7 @@ func NewRepository(db *gorm.DB) Repository {
 }
 
 func (r *repository) Create(ctx context.Context, u *models.User) error {
-	// The poli already exists; do not let GORM try to upsert it.
-	err := r.db.WithContext(ctx).Omit("Poli").Create(u).Error
+	err := r.db.WithContext(ctx).Create(u).Error
 	if errors.Is(err, gorm.ErrDuplicatedKey) {
 		return ErrAlreadyExists
 	}
@@ -60,7 +59,7 @@ func (r *repository) Count(ctx context.Context) (int64, error) {
 
 func (r *repository) findOne(ctx context.Context, query string, arg any) (*models.User, error) {
 	var u models.User
-	err := r.db.WithContext(ctx).Preload("Role").Preload("Poli").Where(query, arg).First(&u).Error
+	err := r.db.WithContext(ctx).Preload("Role").Where(query, arg).First(&u).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrUserNotFound
 	}

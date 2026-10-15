@@ -1,6 +1,10 @@
 package doctors
 
-import "time"
+import (
+	"time"
+
+	"gin-quickstart/internal/platform/models"
+)
 
 // DoctorRequest is used for both create and update. On create, a missing is_active means true;
 // on update it leaves the current value unchanged.
@@ -19,6 +23,7 @@ type ListRequest struct {
 	PoliID         string `form:"poli_id" json:"poli_id" binding:"omitempty,uuid"`
 	Specialization string `form:"specialization" json:"specialization" binding:"omitempty,max=100"`
 	IsActive       *bool  `form:"is_active" json:"is_active"`
+	HasAccount     *bool  `form:"has_account" json:"has_account"`
 }
 
 type ListQuery struct {
@@ -26,6 +31,7 @@ type ListQuery struct {
 	PoliID         string
 	Specialization string
 	IsActive       *bool
+	HasAccount     *bool
 	Page           int
 	Limit          int
 }
@@ -50,7 +56,7 @@ type Response struct {
 	UpdatedAt      time.Time `json:"updated_at"`
 }
 
-func toResponse(d *Doctor) Response {
+func toResponse(d *models.Doctor) Response {
 	r := Response{
 		ID:             d.ID.String(),
 		Name:           d.Name,

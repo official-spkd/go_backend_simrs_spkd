@@ -12,8 +12,8 @@ import (
 )
 
 var (
-	ErrNotFound      = errors.New("user not found")
-	ErrAlreadyExists = errors.New("nip, email, SIP number or STR number is already registered")
+	ErrNotFound      = models.ErrUserNotFound
+	ErrAlreadyExists = errors.New("nip, email or doctor already has an account")
 )
 
 type Repository interface {
@@ -32,7 +32,7 @@ func NewRepository(db *gorm.DB) Repository {
 }
 
 func (r *repository) List(ctx context.Context, q ListQuery) ([]models.User, int64, error) {
-	tx := r.db.WithContext(ctx).Model(&models.User{}).Joins("Role").Preload("Poli")
+	tx := r.db.WithContext(ctx).Model(&models.User{}).Joins("Role")
 
 	if q.Search != "" {
 		like := "%" + escapeLike(strings.ToLower(q.Search)) + "%"
@@ -62,7 +62,7 @@ func (r *repository) List(ctx context.Context, q ListQuery) ([]models.User, int6
 
 func (r *repository) FindByID(ctx context.Context, id uuid.UUID) (*models.User, error) {
 	var u models.User
-	err := r.db.WithContext(ctx).Preload("Role").Preload("Poli").First(&u, "users.id = ?", id).Error
+	err := r.db.WithContext(ctx).Preload("Role").First(&u, "users.id = ?", id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrNotFound
 	}

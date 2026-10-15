@@ -52,6 +52,7 @@ func (h *Handler) Create(c *gin.Context) {
 // @Param			poli_id			query		string	false	"Only doctors of this poli"
 // @Param			specialization	query		string	false	"Exact specialization (case-insensitive)"
 // @Param			is_active		query		bool	false	"Filter by status"
+// @Param			has_account		query		bool	false	"false = only doctors without a login account yet (for the account form)"
 // @Param			page			query		int		false	"Page number"				default(1)
 // @Param			limit			query		int		false	"Items per page (max 100)"	default(20)
 // @Success		200				{object}	utils.PaginatedResponse{data=[]Response}
@@ -63,7 +64,7 @@ func (h *Handler) List(c *gin.Context) {
 	if !utils.BindQuery(c, &req) {
 		return
 	}
-	q := ListQuery{Search: req.Search, PoliID: req.PoliID, Specialization: req.Specialization, IsActive: req.IsActive}
+	q := ListQuery{Search: req.Search, PoliID: req.PoliID, Specialization: req.Specialization, IsActive: req.IsActive, HasAccount: req.HasAccount}
 	q.Page, q.Limit = utils.ParsePagination(c)
 
 	data, total, err := h.service.List(c.Request.Context(), q)
@@ -131,7 +132,7 @@ func (h *Handler) Update(c *gin.Context) {
 }
 
 // @Summary		Delete a doctor
-// @Description	Superadmin only. The poli's doctor count is updated automatically.
+// @Description	Superadmin only. A doctor that a user account is linked to cannot be deleted (409). The poli's doctor count is updated automatically.
 // @Tags			doctors
 // @Produce		json
 // @Security		BearerAuth
@@ -141,6 +142,7 @@ func (h *Handler) Update(c *gin.Context) {
 // @Failure		401	{object}	utils.ErrorResponse
 // @Failure		403	{object}	utils.ErrorResponse
 // @Failure		404	{object}	utils.ErrorResponse
+// @Failure		409	{object}	utils.ErrorResponse
 // @Router			/api/v1/doctors/{id} [delete]
 func (h *Handler) Delete(c *gin.Context) {
 	id, ok := utils.ParseUUIDParam(c, "id")
@@ -158,7 +160,7 @@ func (h *Handler) fail(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, ErrNotFound):
 		utils.AbortWithError(c, http.StatusNotFound, err.Error())
-	case errors.Is(err, ErrAlreadyExists):
+	case errors.Is(err, ErrAlreadyExists), errors.Is(err, ErrInUse):
 		utils.AbortWithError(c, http.StatusConflict, err.Error())
 	case errors.Is(err, ErrPoliNotFound), errors.Is(err, ErrPoliInactive):
 		utils.AbortWithError(c, http.StatusBadRequest, err.Error())

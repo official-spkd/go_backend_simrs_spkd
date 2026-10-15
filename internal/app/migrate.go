@@ -15,26 +15,13 @@ func migrate(db *gorm.DB) error {
 	if err := db.Exec("CREATE SEQUENCE IF NOT EXISTS patient_medical_record_number_seq").Error; err != nil {
 		return fmt.Errorf("create sequence: %w", err)
 	}
-	if err := db.AutoMigrate(&roles.Role{}, &models.User{}, &models.Patient{}, &models.Visit{}, &models.Counter{}, &models.Queue{}, &models.Poli{}, &doctors.Doctor{}); err != nil {
+	if err := db.AutoMigrate(&roles.Role{}, &models.Poli{}, &models.Doctor{}, &models.User{}, &models.Patient{}, &models.Visit{}, &models.Counter{}, &models.Queue{}); err != nil {
 		return fmt.Errorf("migrate: %w", err)
 	}
 
 	// GORM tags cannot express an expression index: names are unique regardless of case.
 	if err := db.Exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_polis_name_lower ON polis (LOWER(name))").Error; err != nil {
 		return fmt.Errorf("create poli name index: %w", err)
-	}
-
-	// Doctor data used to live in a separate doctor_profiles table. Copy it onto users once.
-	// The old table is left in place; drop it manually when you no longer need it.
-	err := db.Exec(`DO $$ BEGIN
-		IF to_regclass('public.doctor_profiles') IS NOT NULL THEN
-			UPDATE users u SET sip_number = d.sip_number, str_number = d.str_number, poli_id = d.poli_id
-			FROM doctor_profiles d, roles r
-			WHERE d.user_id = u.id AND u.poli_id IS NULL AND r.id = u.role_id AND r.name = 'doctor';
-		END IF;
-	END $$`).Error
-	if err != nil {
-		return fmt.Errorf("copy doctor profiles: %w", err)
 	}
 
 	// doctor_count is derived from active doctors, so refresh it for every poli.
@@ -44,7 +31,7 @@ func migrate(db *gorm.DB) error {
 
 	// Visits created before penjamin used the lowercase vocabulary stored General/BPJS/Insurance.
 	// Idempotent: rows already converted are left untouched.
-	err = db.Exec(`UPDATE visits SET payer = CASE payer
+	err := db.Exec(`UPDATE visits SET payer = CASE payer
 		WHEN 'General' THEN 'umum' WHEN 'BPJS' THEN 'bpjs' WHEN 'Insurance' THEN 'asuransi' END
 		WHERE payer IN ('General', 'BPJS', 'Insurance')`).Error
 	if err != nil {

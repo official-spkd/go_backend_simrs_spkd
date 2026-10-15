@@ -43,7 +43,7 @@ func (h *Handler) Login(c *gin.Context) {
 }
 
 // @Summary		Register a user
-// @Description	Open for the very first account (becomes superadmin). Afterwards only a superadmin can register accounts. For role doctor, sip_number, str_number and poli_id (an active poli from GET /polis) are required; for other roles they are rejected.
+// @Description	Open for the very first account (becomes superadmin). Afterwards only a superadmin can register accounts. For role doctor, doctor_id (an active doctor from GET /doctors?has_account=false, one account per doctor) is required; for other roles it is rejected.
 // @Tags			auth
 // @Accept			json
 // @Produce		json
@@ -99,7 +99,7 @@ func (h *Handler) fail(c *gin.Context, err error) {
 	case errors.Is(err, ErrInactiveAccount), errors.Is(err, ErrForbidden):
 		utils.AbortWithError(c, http.StatusForbidden, err.Error())
 	case errors.Is(err, ErrRoleRequired), errors.Is(err, ErrInvalidRole),
-		errors.Is(err, ErrPoliNotFound), errors.Is(err, ErrPoliInactive):
+		errors.Is(err, ErrDoctorNotFound), errors.Is(err, ErrDoctorInactive):
 		utils.AbortWithError(c, http.StatusBadRequest, err.Error())
 	case errors.Is(err, ErrAlreadyExists):
 		utils.AbortWithError(c, http.StatusConflict, err.Error())

@@ -22,8 +22,8 @@ var (
 	ErrForbidden          = errors.New("only superadmin can register new users")
 	ErrRoleRequired       = errors.New("role is required")
 	ErrInvalidRole        = errors.New("role does not exist")
-	ErrPoliNotFound       = models.ErrPoliNotFound
-	ErrPoliInactive       = errors.New("poli is not active")
+	ErrDoctorNotFound     = models.ErrDoctorNotFound
+	ErrDoctorInactive     = errors.New("doctor is not active")
 )
 
 var dummyHash, _ = bcrypt.GenerateFromPassword([]byte("dummy-password"), bcrypt.DefaultCost)
@@ -32,9 +32,9 @@ type RoleFinder interface {
 	FindByName(ctx context.Context, name string) (*roles.Role, error)
 }
 
-// PoliFinder is satisfied by the polis feature's service.
-type PoliFinder interface {
-	Get(ctx context.Context, id uuid.UUID) (*models.Poli, error)
+// DoctorFinder is satisfied by the doctors feature's service.
+type DoctorFinder interface {
+	Get(ctx context.Context, id uuid.UUID) (*models.Doctor, error)
 }
 
 type Service interface {
@@ -44,14 +44,14 @@ type Service interface {
 }
 
 type service struct {
-	repo   Repository
-	roles  RoleFinder
-	polis  PoliFinder
-	tokens *utils.TokenManager
+	repo    Repository
+	roles   RoleFinder
+	doctors DoctorFinder
+	tokens  *utils.TokenManager
 }
 
-func NewService(repo Repository, roles RoleFinder, polis PoliFinder, tokens *utils.TokenManager) Service {
-	return &service{repo: repo, roles: roles, polis: polis, tokens: tokens}
+func NewService(repo Repository, roles RoleFinder, doctors DoctorFinder, tokens *utils.TokenManager) Service {
+	return &service{repo: repo, roles: roles, doctors: doctors, tokens: tokens}
 }
 
 func (s *service) Login(ctx context.Context, req LoginRequest) (*LoginResponse, error) {
@@ -115,9 +115,9 @@ func (s *service) Register(ctx context.Context, req RegisterRequest, actor *util
 		return nil, err
 	}
 
-	var profile *doctorFields
+	var doctorID *uuid.UUID
 	if role.Name == roles.Doctor {
-		if profile, err = s.doctorFields(ctx, req); err != nil {
+		if doctorID, err = s.activeDoctorID(ctx, req.DoctorID); err != nil {
 			return nil, err
 		}
 	}
@@ -135,10 +135,7 @@ func (s *service) Register(ctx context.Context, req RegisterRequest, actor *util
 		RoleID:       role.ID,
 		Role:         *role,
 		IsActive:     true,
-	}
-	if profile != nil {
-		u.SIPNumber, u.STRNumber = &profile.sip, &profile.str
-		u.PoliID, u.Poli = &profile.poli.ID, profile.poli
+		DoctorID:     doctorID,
 	}
 	if err := s.repo.Create(ctx, u); err != nil {
 		return nil, err
@@ -157,27 +154,18 @@ func (s *service) Me(ctx context.Context, userID uuid.UUID) (*models.User, error
 	return u, nil
 }
 
-type doctorFields struct {
-	sip, str string
-	poli     *models.Poli
-}
-
-// doctorFields validates the doctor-only fields and resolves the poli they are assigned to.
-func (s *service) doctorFields(ctx context.Context, req RegisterRequest) (*doctorFields, error) {
-	poliID, err := uuid.Parse(req.PoliID)
+// activeDoctorID checks that the doctor record exists and is active before an account is made for it.
+func (s *service) activeDoctorID(ctx context.Context, rawID string) (*uuid.UUID, error) {
+	id, err := uuid.Parse(rawID)
 	if err != nil {
-		return nil, ErrPoliNotFound
+		return nil, ErrDoctorNotFound
 	}
-	poli, err := s.polis.Get(ctx, poliID)
+	doctor, err := s.doctors.Get(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	if !poli.IsActive {
-		return nil, ErrPoliInactive
+	if !doctor.IsActive {
+		return nil, ErrDoctorInactive
 	}
-	return &doctorFields{
-		sip:  strings.TrimSpace(req.SIPNumber),
-		str:  strings.TrimSpace(req.STRNumber),
-		poli: poli,
-	}, nil
+	return &doctor.ID, nil
 }

@@ -8,18 +8,21 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+
+	"gin-quickstart/internal/platform/models"
 )
 
 var (
-	ErrNotFound      = errors.New("doctor not found")
+	ErrNotFound      = models.ErrDoctorNotFound
+	ErrInUse         = errors.New("doctor is still linked to a user account")
 	ErrAlreadyExists = errors.New("sip, str or ihs number is already registered")
 )
 
 type Repository interface {
-	Create(ctx context.Context, d *Doctor) error
-	FindByID(ctx context.Context, id uuid.UUID) (*Doctor, error)
-	List(ctx context.Context, q ListQuery) ([]Doctor, int64, error)
-	Update(ctx context.Context, d *Doctor) error
+	Create(ctx context.Context, d *models.Doctor) error
+	FindByID(ctx context.Context, id uuid.UUID) (*models.Doctor, error)
+	List(ctx context.Context, q ListQuery) ([]models.Doctor, int64, error)
+	Update(ctx context.Context, d *models.Doctor) error
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 
@@ -33,7 +36,7 @@ func NewRepository(db *gorm.DB) Repository {
 
 // Create, Update and Delete refresh doctor_count of the affected polis in the same transaction.
 
-func (r *repository) Create(ctx context.Context, d *Doctor) error {
+func (r *repository) Create(ctx context.Context, d *models.Doctor) error {
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Omit("Poli").Create(d).Error; err != nil {
 			return err
@@ -43,9 +46,9 @@ func (r *repository) Create(ctx context.Context, d *Doctor) error {
 	return translate(err)
 }
 
-func (r *repository) Update(ctx context.Context, d *Doctor) error {
+func (r *repository) Update(ctx context.Context, d *models.Doctor) error {
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		var old Doctor
+		var old models.Doctor
 		err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Select("id", "poli_id").First(&old, "id = ?", d.ID).Error
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ErrNotFound
@@ -63,8 +66,8 @@ func (r *repository) Update(ctx context.Context, d *Doctor) error {
 }
 
 func (r *repository) Delete(ctx context.Context, id uuid.UUID) error {
-	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		var d Doctor
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var d models.Doctor
 		err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Select("id", "poli_id").First(&d, "id = ?", id).Error
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ErrNotFound
@@ -77,10 +80,14 @@ func (r *repository) Delete(ctx context.Context, id uuid.UUID) error {
 		}
 		return recountPoliDoctors(tx, d.PoliID)
 	})
+	if errors.Is(err, gorm.ErrForeignKeyViolated) {
+		return ErrInUse
+	}
+	return err
 }
 
-func (r *repository) FindByID(ctx context.Context, id uuid.UUID) (*Doctor, error) {
-	var d Doctor
+func (r *repository) FindByID(ctx context.Context, id uuid.UUID) (*models.Doctor, error) {
+	var d models.Doctor
 	err := r.db.WithContext(ctx).Preload("Poli").First(&d, "id = ?", id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrNotFound
@@ -91,8 +98,8 @@ func (r *repository) FindByID(ctx context.Context, id uuid.UUID) (*Doctor, error
 	return &d, nil
 }
 
-func (r *repository) List(ctx context.Context, q ListQuery) ([]Doctor, int64, error) {
-	tx := r.db.WithContext(ctx).Model(&Doctor{})
+func (r *repository) List(ctx context.Context, q ListQuery) ([]models.Doctor, int64, error) {
+	tx := r.db.WithContext(ctx).Model(&models.Doctor{})
 
 	if q.PoliID != "" {
 		tx = tx.Where("poli_id = ?", q.PoliID)
@@ -102,6 +109,13 @@ func (r *repository) List(ctx context.Context, q ListQuery) ([]Doctor, int64, er
 	}
 	if q.IsActive != nil {
 		tx = tx.Where("is_active = ?", *q.IsActive)
+	}
+	if q.HasAccount != nil {
+		linked := "id IN (SELECT doctor_id FROM users WHERE doctor_id IS NOT NULL)"
+		if !*q.HasAccount {
+			linked = "id NOT IN (SELECT doctor_id FROM users WHERE doctor_id IS NOT NULL)"
+		}
+		tx = tx.Where(linked)
 	}
 	if q.Search != "" {
 		like := "%" + escapeLike(strings.ToLower(q.Search)) + "%"
@@ -113,7 +127,7 @@ func (r *repository) List(ctx context.Context, q ListQuery) ([]Doctor, int64, er
 		return nil, 0, err
 	}
 
-	var out []Doctor
+	var out []models.Doctor
 	err := tx.Preload("Poli").Order("name, id").
 		Limit(q.Limit).Offset((q.Page - 1) * q.Limit).Find(&out).Error
 	if err != nil {

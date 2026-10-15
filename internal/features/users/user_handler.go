@@ -82,7 +82,7 @@ func (h *Handler) Get(c *gin.Context) {
 }
 
 // @Summary		Update a user's profile
-// @Description	Superadmin only. Changes name, NIP and email. For doctors, sip_number, str_number and poli_id may also be sent (only the fields to change); moving a doctor to another poli updates both polis' doctor counts.
+// @Description	Superadmin only. Changes name, NIP and email.
 // @Tags			users
 // @Accept			json
 // @Produce		json
@@ -114,7 +114,7 @@ func (h *Handler) Update(c *gin.Context) {
 }
 
 // @Summary		Change a user's role
-// @Description	Superadmin only. You cannot change your own role. Becoming a doctor requires sip_number, str_number and poli_id; leaving the doctor role clears them. The doctor count of the affected polis is updated automatically.
+// @Description	Superadmin only. You cannot change your own role. Becoming a doctor requires doctor_id (an active doctor without an account); leaving the doctor role unlinks it.
 // @Tags			users
 // @Accept			json
 // @Produce		json
@@ -145,7 +145,7 @@ func (h *Handler) UpdateRole(c *gin.Context) {
 }
 
 // @Summary		Activate or deactivate a user
-// @Description	Superadmin only. You cannot change your own status. Deactivating a doctor lowers their poli's doctor count; activating raises it.
+// @Description	Superadmin only. You cannot change your own status.
 // @Tags			users
 // @Accept			json
 // @Produce		json
@@ -205,7 +205,7 @@ func (h *Handler) ResetPassword(c *gin.Context) {
 }
 
 // @Summary		Delete a user
-// @Description	Superadmin only. You cannot delete your own account. Deleting a doctor lowers their poli's doctor count.
+// @Description	Superadmin only. You cannot delete your own account.
 // @Tags			users
 // @Security		BearerAuth
 // @Param			id	path	string	true	"User ID"
@@ -244,8 +244,7 @@ func (h *Handler) fail(c *gin.Context, err error) {
 		utils.AbortWithError(c, http.StatusNotFound, err.Error())
 	case errors.Is(err, ErrAlreadyExists):
 		utils.AbortWithError(c, http.StatusConflict, err.Error())
-	case errors.Is(err, ErrInvalidRole), errors.Is(err, ErrNotDoctor),
-		errors.Is(err, ErrPoliNotFound), errors.Is(err, ErrPoliInactive):
+	case errors.Is(err, ErrInvalidRole), errors.Is(err, ErrDoctorNotFound), errors.Is(err, ErrDoctorInactive):
 		utils.AbortWithError(c, http.StatusBadRequest, err.Error())
 	case errors.Is(err, ErrSelfAction):
 		utils.AbortWithError(c, http.StatusForbidden, err.Error())

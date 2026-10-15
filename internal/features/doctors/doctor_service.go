@@ -21,10 +21,10 @@ type PoliFinder interface {
 }
 
 type Service interface {
-	Create(ctx context.Context, req DoctorRequest) (*Doctor, error)
-	Get(ctx context.Context, id uuid.UUID) (*Doctor, error)
+	Create(ctx context.Context, req DoctorRequest) (*models.Doctor, error)
+	Get(ctx context.Context, id uuid.UUID) (*models.Doctor, error)
 	List(ctx context.Context, q ListQuery) ([]Response, int64, error)
-	Update(ctx context.Context, id uuid.UUID, req DoctorRequest) (*Doctor, error)
+	Update(ctx context.Context, id uuid.UUID, req DoctorRequest) (*models.Doctor, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 
@@ -37,13 +37,13 @@ func NewService(repo Repository, polis PoliFinder) Service {
 	return &service{repo: repo, polis: polis}
 }
 
-func (s *service) Create(ctx context.Context, req DoctorRequest) (*Doctor, error) {
+func (s *service) Create(ctx context.Context, req DoctorRequest) (*models.Doctor, error) {
 	poli, err := s.resolvePoli(ctx, req.PoliID, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	d := &Doctor{IsActive: true}
+	d := &models.Doctor{IsActive: true}
 	apply(d, req, poli)
 	if err := s.repo.Create(ctx, d); err != nil {
 		return nil, err
@@ -51,7 +51,7 @@ func (s *service) Create(ctx context.Context, req DoctorRequest) (*Doctor, error
 	return d, nil
 }
 
-func (s *service) Get(ctx context.Context, id uuid.UUID) (*Doctor, error) {
+func (s *service) Get(ctx context.Context, id uuid.UUID) (*models.Doctor, error) {
 	return s.repo.FindByID(ctx, id)
 }
 
@@ -70,7 +70,7 @@ func (s *service) List(ctx context.Context, q ListQuery) ([]Response, int64, err
 	return data, total, nil
 }
 
-func (s *service) Update(ctx context.Context, id uuid.UUID, req DoctorRequest) (*Doctor, error) {
+func (s *service) Update(ctx context.Context, id uuid.UUID, req DoctorRequest) (*models.Doctor, error) {
 	d, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -108,7 +108,7 @@ func (s *service) resolvePoli(ctx context.Context, rawID string, current *uuid.U
 	return poli, nil
 }
 
-func apply(d *Doctor, req DoctorRequest, poli *models.Poli) {
+func apply(d *models.Doctor, req DoctorRequest, poli *models.Poli) {
 	d.Name = strings.TrimSpace(req.Name)
 	d.Specialization = strings.TrimSpace(req.Specialization)
 	d.PoliID, d.Poli = poli.ID, poli
