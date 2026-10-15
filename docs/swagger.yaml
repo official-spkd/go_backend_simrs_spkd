@@ -169,6 +169,435 @@ definitions:
       updated_at:
         type: string
     type: object
+  examinations.AddendumRequest:
+    properties:
+      content:
+        example: 'Correction: allergy to amoxicillin was confirmed.'
+        maxLength: 5000
+        type: string
+    required:
+    - content
+    type: object
+  examinations.AddendumResponse:
+    properties:
+      author_user_id:
+        example: 5b815a95-e4d9-40c1-bfc0-dccbe1f38722
+        type: string
+      content:
+        type: string
+      created_at:
+        type: string
+      id:
+        example: 7d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93
+        type: string
+    type: object
+  examinations.Assessment:
+    properties:
+      notes:
+        type: string
+      primary_diagnosis:
+        $ref: '#/definitions/examinations.DiagnosisResponse'
+      secondary_diagnoses:
+        items:
+          $ref: '#/definitions/examinations.DiagnosisResponse'
+        type: array
+    type: object
+  examinations.DiagnosisInput:
+    properties:
+      icd10_code:
+        example: J06.9
+        type: string
+      name:
+        example: Acute upper respiratory infection, unspecified
+        maxLength: 255
+        type: string
+    required:
+    - icd10_code
+    type: object
+  examinations.DiagnosisResponse:
+    properties:
+      icd10_code:
+        example: J06.9
+        type: string
+      name:
+        example: Acute upper respiratory infection, unspecified
+        type: string
+    type: object
+  examinations.ExaminationResponse:
+    properties:
+      prefill:
+        $ref: '#/definitions/examinations.Prefill'
+      soap_note:
+        $ref: '#/definitions/examinations.SoapResponse'
+      visit:
+        $ref: '#/definitions/examinations.VisitSummary'
+      vital_signs:
+        $ref: '#/definitions/examinations.VitalResponse'
+    type: object
+  examinations.Flag:
+    properties:
+      field:
+        example: spo2
+        type: string
+      level:
+        enum:
+        - warning
+        - critical
+        example: warning
+        type: string
+      message:
+        example: SpO2 below 95%
+        type: string
+    type: object
+  examinations.Objective:
+    properties:
+      findings:
+        type: string
+      vital_signs:
+        $ref: '#/definitions/examinations.VitalResponse'
+    type: object
+  examinations.PatientSummary:
+    properties:
+      age:
+        example: 36
+        type: integer
+      birth_date:
+        example: "1990-05-17"
+        type: string
+      full_name:
+        example: Siti Rahmawati
+        type: string
+      gender:
+        allOf:
+        - $ref: '#/definitions/models.Gender'
+        enum:
+        - Male
+        - Female
+        example: Female
+      id:
+        example: 3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71
+        type: string
+      medical_record_number:
+        example: RM-000001
+        type: string
+    type: object
+  examinations.Prefill:
+    properties:
+      allergies:
+        example: Penicillin
+        type: string
+      chief_complaint:
+        example: Fever and cough for three days
+        type: string
+    type: object
+  examinations.SoapRequest:
+    properties:
+      assessment_notes:
+        example: URTI, good general condition.
+        maxLength: 5000
+        type: string
+      control_date:
+        description: only with outpatient_followup
+        example: "2026-10-22"
+        type: string
+      follow_up:
+        enum:
+        - discharge
+        - outpatient_followup
+        - refer_inpatient
+        - refer_icu
+        example: outpatient_followup
+        type: string
+      objective_findings:
+        example: Pharynx hyperemic, no rhonchi, no wheezing.
+        maxLength: 5000
+        type: string
+      plan:
+        example: Paracetamol 3x500 mg, drink plenty of fluids, rest.
+        maxLength: 5000
+        type: string
+      primary_diagnosis:
+        $ref: '#/definitions/examinations.DiagnosisInput'
+      referral_notes:
+        description: only with refer_inpatient / refer_icu
+        example: ""
+        maxLength: 1000
+        type: string
+      secondary_diagnoses:
+        items:
+          $ref: '#/definitions/examinations.DiagnosisInput'
+        maxItems: 10
+        type: array
+      subjective:
+        example: Fever for 3 days, productive cough, no shortness of breath.
+        maxLength: 5000
+        type: string
+      version:
+        example: 0
+        minimum: 0
+        type: integer
+    type: object
+  examinations.SoapResponse:
+    properties:
+      addenda:
+        items:
+          $ref: '#/definitions/examinations.AddendumResponse'
+        type: array
+      assessment:
+        $ref: '#/definitions/examinations.Assessment'
+      control_date:
+        example: "2026-10-22"
+        type: string
+      doctor_id:
+        example: 9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93
+        type: string
+      finalized_at:
+        type: string
+      follow_up:
+        example: outpatient_followup
+        type: string
+      objective:
+        $ref: '#/definitions/examinations.Objective'
+      plan:
+        type: string
+      referral_notes:
+        type: string
+      status:
+        enum:
+        - draft
+        - final
+        example: draft
+        type: string
+      subjective:
+        type: string
+      updated_at:
+        type: string
+      version:
+        example: 0
+        type: integer
+      visit_id:
+        example: 104dd35e-2b3a-4b2a-b38c-8bdd0e1ecc79
+        type: string
+    type: object
+  examinations.VisitSummary:
+    properties:
+      doctor:
+        example: dr. Andi Wijaya
+        type: string
+      id:
+        example: 104dd35e-2b3a-4b2a-b38c-8bdd0e1ecc79
+        type: string
+      patient:
+        $ref: '#/definitions/examinations.PatientSummary'
+      poli:
+        example: General Clinic
+        type: string
+      visit_date:
+        example: "2026-10-15"
+        type: string
+      visit_status:
+        allOf:
+        - $ref: '#/definitions/models.VisitStatus'
+        enum:
+        - Registered
+        - Served
+        - Completed
+        - Paid
+        - Cancelled
+        example: Served
+      visit_type:
+        allOf:
+        - $ref: '#/definitions/models.VisitType'
+        enum:
+        - baru
+        - kontrol
+        example: baru
+    type: object
+  examinations.VitalRequest:
+    properties:
+      allergies:
+        description: Either list the allergies or confirm there are none; an empty
+          text alone is not an answer.
+        example: Penicillin, shrimp
+        maxLength: 1000
+        type: string
+      chief_complaint:
+        example: Fever and cough for three days
+        maxLength: 1000
+        type: string
+      consciousness:
+        enum:
+        - compos_mentis
+        - apathy
+        - delirium
+        - somnolence
+        - stupor
+        - coma
+        example: compos_mentis
+        type: string
+      diastolic_bp:
+        example: 80
+        maximum: 200
+        minimum: 20
+        type: integer
+      fall_risk:
+        example: true
+        type: boolean
+      fall_risk_level:
+        description: required when fall_risk is true
+        enum:
+        - low
+        - moderate
+        - high
+        example: low
+        type: string
+      height_cm:
+        description: Height and weight go together; they are required for a first
+          visit (visit_type baru).
+        example: 165
+        maximum: 250
+        minimum: 30
+        type: number
+      no_known_allergies:
+        example: false
+        type: boolean
+      pain_score:
+        example: 2
+        maximum: 10
+        minimum: 0
+        type: integer
+      pulse:
+        example: 82
+        maximum: 250
+        minimum: 20
+        type: integer
+      respiratory_rate:
+        example: 18
+        maximum: 80
+        minimum: 4
+        type: integer
+      spo2:
+        example: 98
+        maximum: 100
+        minimum: 50
+        type: integer
+      systolic_bp:
+        example: 120
+        maximum: 300
+        minimum: 40
+        type: integer
+      temperature:
+        example: 36.8
+        maximum: 45
+        minimum: 30
+        type: number
+      version:
+        example: 0
+        minimum: 0
+        type: integer
+      weight_kg:
+        example: 60
+        maximum: 400
+        minimum: 0.5
+        type: number
+    required:
+    - chief_complaint
+    - consciousness
+    - diastolic_bp
+    - fall_risk
+    - pain_score
+    - pulse
+    - respiratory_rate
+    - spo2
+    - systolic_bp
+    - temperature
+    type: object
+  examinations.VitalResponse:
+    properties:
+      allergies:
+        example: Penicillin, shrimp
+        type: string
+      bmi:
+        example: 22
+        type: number
+      bmi_category:
+        enum:
+        - severely_underweight
+        - underweight
+        - normal
+        - overweight
+        - obese
+        - not_applicable
+        example: normal
+        type: string
+      chief_complaint:
+        example: Fever and cough for three days
+        type: string
+      consciousness:
+        example: compos_mentis
+        type: string
+      diastolic_bp:
+        example: 80
+        type: integer
+      fall_risk:
+        example: true
+        type: boolean
+      fall_risk_level:
+        example: low
+        type: string
+      flags:
+        items:
+          $ref: '#/definitions/examinations.Flag'
+        type: array
+      height_cm:
+        example: 165
+        type: number
+      measured_at:
+        type: string
+      measured_by_user_id:
+        example: 5b815a95-e4d9-40c1-bfc0-dccbe1f38722
+        type: string
+      no_known_allergies:
+        example: false
+        type: boolean
+      pain_category:
+        enum:
+        - none
+        - mild
+        - moderate
+        - severe
+        example: mild
+        type: string
+      pain_score:
+        example: 2
+        type: integer
+      pulse:
+        example: 82
+        type: integer
+      respiratory_rate:
+        example: 18
+        type: integer
+      spo2:
+        example: 98
+        type: integer
+      systolic_bp:
+        example: 120
+        type: integer
+      temperature:
+        example: 36.8
+        type: number
+      updated_at:
+        type: string
+      version:
+        example: 0
+        type: integer
+      visit_id:
+        example: 104dd35e-2b3a-4b2a-b38c-8bdd0e1ecc79
+        type: string
+      weight_kg:
+        example: 60
+        type: number
+    type: object
   models.Gender:
     enum:
     - Male
@@ -1858,6 +2287,361 @@ paths:
       summary: Update a doctor
       tags:
       - doctors
+  /api/v1/examinations/{visit_id}:
+    get:
+      description: Doctor only, and only for visits assigned to the signed-in doctor.
+        Returns the visit summary, values to prefill the form from, the vital signs,
+        and the SOAP note (each null until saved).
+      parameters:
+      - description: Visit ID
+        in: path
+        name: visit_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/examinations.ExaminationResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a visit's examination
+      tags:
+      - examinations
+  /api/v1/examinations/{visit_id}/soap-note:
+    get:
+      description: 'Doctor only (own visits). Objective.vital_signs is pulled in automatically:
+        live values while the note is a draft, the frozen snapshot once final. 404
+        until a draft has been saved.'
+      parameters:
+      - description: Visit ID
+        in: path
+        name: visit_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/examinations.SoapResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get the SOAP note
+      tags:
+      - examinations
+    put:
+      consumes:
+      - application/json
+      description: 'Doctor only (own visits). Creates the draft on the first call
+        (version 0) and replaces it afterwards (send the current version, otherwise
+        409). The first save moves the visit from Registered to Served. Diagnoses
+        are ICD-10 codes (format only; no code list is checked yet): one primary,
+        up to 10 secondary. control_date only goes with outpatient_followup, referral_notes
+        only with refer_inpatient or refer_icu. Not allowed once final.'
+      parameters:
+      - description: Visit ID
+        in: path
+        name: visit_id
+        required: true
+        type: string
+      - description: SOAP draft
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/examinations.SoapRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/examinations.SoapResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Save the SOAP note draft
+      tags:
+      - examinations
+  /api/v1/examinations/{visit_id}/soap-note/addenda:
+    post:
+      consumes:
+      - application/json
+      description: Doctor only (own visits). Appends a correction or note to a finalized
+        SOAP note. Addenda cannot be edited or deleted.
+      parameters:
+      - description: Visit ID
+        in: path
+        name: visit_id
+        required: true
+        type: string
+      - description: Addendum
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/examinations.AddendumRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/examinations.SoapResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Add an addendum
+      tags:
+      - examinations
+  /api/v1/examinations/{visit_id}/soap-note/finalize:
+    post:
+      description: Doctor only (own visits). Needs the vital signs, subjective, plan,
+        a primary diagnosis and a follow-up (plus control_date or referral_notes where
+        they apply), otherwise 422 with the missing fields. Freezes the vital signs
+        shown in the objective part, locks the note and the vital signs, and moves
+        the visit to Completed. Corrections afterwards go through addenda.
+      parameters:
+      - description: Visit ID
+        in: path
+        name: visit_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/examinations.SoapResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Finalize the SOAP note
+      tags:
+      - examinations
+  /api/v1/examinations/{visit_id}/vital-signs:
+    get:
+      description: Doctor only (own visits). 404 until the vital signs have been saved.
+      parameters:
+      - description: Visit ID
+        in: path
+        name: visit_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/examinations.VitalResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get the vital signs
+      tags:
+      - examinations
+    put:
+      consumes:
+      - application/json
+      description: Doctor only (own visits). Creates the record on the first call
+        (version 0) and updates it afterwards (send the current version, otherwise
+        409). BMI and its Kemenkes RI category are computed by the server (category
+        is not_applicable under 18 years); flags are advisory. Not allowed once the
+        SOAP note is final, for cancelled visits, or for visits scheduled for a later
+        date. Either list allergies or set no_known_allergies.
+      parameters:
+      - description: Visit ID
+        in: path
+        name: visit_id
+        required: true
+        type: string
+      - description: Vital signs
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/examinations.VitalRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/examinations.VitalResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Save the vital signs and initial assessment
+      tags:
+      - examinations
   /api/v1/patients:
     get:
       description: Front Office only. Search by name, NIK, medical record number or

@@ -1,6 +1,7 @@
 package models
 
 import (
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -22,6 +23,9 @@ const (
 	VisitTypeNew      VisitType = "baru"
 	VisitTypeFollowUp VisitType = "kontrol"
 )
+
+// ErrVisitNotFound is shared so other features can detect a missing visit without importing the visits feature.
+var ErrVisitNotFound = errors.New("visit not found")
 
 type VisitStatus string
 

@@ -74,7 +74,7 @@ func (s *service) Create(ctx context.Context, req CreateRequest) (*models.Visit,
 	}
 
 	responsible := strings.TrimSpace(req.ResponsiblePerson)
-	if responsible == "" && ageOn(patient.BirthDate, visitDate) < adultAge {
+	if responsible == "" && utils.AgeOn(patient.BirthDate, visitDate) < adultAge {
 		return nil, ErrResponsiblePersonRequired
 	}
 
@@ -143,15 +143,6 @@ func applyPenjaminDetails(v *models.Visit, req CreateRequest) {
 }
 
 const adultAge = 18
-
-// ageOn returns the patient's age in whole years on the given date.
-func ageOn(birthDate, on time.Time) int {
-	age := on.Year() - birthDate.Year()
-	if on.Month() < birthDate.Month() || (on.Month() == birthDate.Month() && on.Day() < birthDate.Day()) {
-		age--
-	}
-	return age
-}
 
 // activeDoctor loads the requested doctor and checks that they can take a visit in the requested poli.
 func (s *service) activeDoctor(ctx context.Context, req CreateRequest) (*models.Doctor, error) {

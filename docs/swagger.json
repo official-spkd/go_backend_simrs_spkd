@@ -1127,6 +1127,558 @@
                 }
             }
         },
+        "/api/v1/examinations/{visit_id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Doctor only, and only for visits assigned to the signed-in doctor. Returns the visit summary, values to prefill the form from, the vital signs, and the SOAP note (each null until saved).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "examinations"
+                ],
+                "summary": "Get a visit's examination",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Visit ID",
+                        "name": "visit_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/examinations.ExaminationResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/examinations/{visit_id}/soap-note": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Doctor only (own visits). Objective.vital_signs is pulled in automatically: live values while the note is a draft, the frozen snapshot once final. 404 until a draft has been saved.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "examinations"
+                ],
+                "summary": "Get the SOAP note",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Visit ID",
+                        "name": "visit_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/examinations.SoapResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Doctor only (own visits). Creates the draft on the first call (version 0) and replaces it afterwards (send the current version, otherwise 409). The first save moves the visit from Registered to Served. Diagnoses are ICD-10 codes (format only; no code list is checked yet): one primary, up to 10 secondary. control_date only goes with outpatient_followup, referral_notes only with refer_inpatient or refer_icu. Not allowed once final.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "examinations"
+                ],
+                "summary": "Save the SOAP note draft",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Visit ID",
+                        "name": "visit_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "SOAP draft",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/examinations.SoapRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/examinations.SoapResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/examinations/{visit_id}/soap-note/addenda": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Doctor only (own visits). Appends a correction or note to a finalized SOAP note. Addenda cannot be edited or deleted.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "examinations"
+                ],
+                "summary": "Add an addendum",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Visit ID",
+                        "name": "visit_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Addendum",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/examinations.AddendumRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/examinations.SoapResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/examinations/{visit_id}/soap-note/finalize": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Doctor only (own visits). Needs the vital signs, subjective, plan, a primary diagnosis and a follow-up (plus control_date or referral_notes where they apply), otherwise 422 with the missing fields. Freezes the vital signs shown in the objective part, locks the note and the vital signs, and moves the visit to Completed. Corrections afterwards go through addenda.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "examinations"
+                ],
+                "summary": "Finalize the SOAP note",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Visit ID",
+                        "name": "visit_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/examinations.SoapResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/examinations/{visit_id}/vital-signs": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Doctor only (own visits). 404 until the vital signs have been saved.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "examinations"
+                ],
+                "summary": "Get the vital signs",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Visit ID",
+                        "name": "visit_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/examinations.VitalResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Doctor only (own visits). Creates the record on the first call (version 0) and updates it afterwards (send the current version, otherwise 409). BMI and its Kemenkes RI category are computed by the server (category is not_applicable under 18 years); flags are advisory. Not allowed once the SOAP note is final, for cancelled visits, or for visits scheduled for a later date. Either list allergies or set no_known_allergies.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "examinations"
+                ],
+                "summary": "Save the vital signs and initial assessment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Visit ID",
+                        "name": "visit_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Vital signs",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/examinations.VitalRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/examinations.VitalResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/patients": {
             "get": {
                 "security": [
@@ -3397,6 +3949,589 @@
                 },
                 "updated_at": {
                     "type": "string"
+                }
+            }
+        },
+        "examinations.AddendumRequest": {
+            "type": "object",
+            "required": [
+                "content"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string",
+                    "maxLength": 5000,
+                    "example": "Correction: allergy to amoxicillin was confirmed."
+                }
+            }
+        },
+        "examinations.AddendumResponse": {
+            "type": "object",
+            "properties": {
+                "author_user_id": {
+                    "type": "string",
+                    "example": "5b815a95-e4d9-40c1-bfc0-dccbe1f38722"
+                },
+                "content": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "7d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93"
+                }
+            }
+        },
+        "examinations.Assessment": {
+            "type": "object",
+            "properties": {
+                "notes": {
+                    "type": "string"
+                },
+                "primary_diagnosis": {
+                    "$ref": "#/definitions/examinations.DiagnosisResponse"
+                },
+                "secondary_diagnoses": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/examinations.DiagnosisResponse"
+                    }
+                }
+            }
+        },
+        "examinations.DiagnosisInput": {
+            "type": "object",
+            "required": [
+                "icd10_code"
+            ],
+            "properties": {
+                "icd10_code": {
+                    "type": "string",
+                    "example": "J06.9"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "example": "Acute upper respiratory infection, unspecified"
+                }
+            }
+        },
+        "examinations.DiagnosisResponse": {
+            "type": "object",
+            "properties": {
+                "icd10_code": {
+                    "type": "string",
+                    "example": "J06.9"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Acute upper respiratory infection, unspecified"
+                }
+            }
+        },
+        "examinations.ExaminationResponse": {
+            "type": "object",
+            "properties": {
+                "prefill": {
+                    "$ref": "#/definitions/examinations.Prefill"
+                },
+                "soap_note": {
+                    "$ref": "#/definitions/examinations.SoapResponse"
+                },
+                "visit": {
+                    "$ref": "#/definitions/examinations.VisitSummary"
+                },
+                "vital_signs": {
+                    "$ref": "#/definitions/examinations.VitalResponse"
+                }
+            }
+        },
+        "examinations.Flag": {
+            "type": "object",
+            "properties": {
+                "field": {
+                    "type": "string",
+                    "example": "spo2"
+                },
+                "level": {
+                    "type": "string",
+                    "enum": [
+                        "warning",
+                        "critical"
+                    ],
+                    "example": "warning"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "SpO2 below 95%"
+                }
+            }
+        },
+        "examinations.Objective": {
+            "type": "object",
+            "properties": {
+                "findings": {
+                    "type": "string"
+                },
+                "vital_signs": {
+                    "$ref": "#/definitions/examinations.VitalResponse"
+                }
+            }
+        },
+        "examinations.PatientSummary": {
+            "type": "object",
+            "properties": {
+                "age": {
+                    "type": "integer",
+                    "example": 36
+                },
+                "birth_date": {
+                    "type": "string",
+                    "example": "1990-05-17"
+                },
+                "full_name": {
+                    "type": "string",
+                    "example": "Siti Rahmawati"
+                },
+                "gender": {
+                    "enum": [
+                        "Male",
+                        "Female"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.Gender"
+                        }
+                    ],
+                    "example": "Female"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71"
+                },
+                "medical_record_number": {
+                    "type": "string",
+                    "example": "RM-000001"
+                }
+            }
+        },
+        "examinations.Prefill": {
+            "type": "object",
+            "properties": {
+                "allergies": {
+                    "type": "string",
+                    "example": "Penicillin"
+                },
+                "chief_complaint": {
+                    "type": "string",
+                    "example": "Fever and cough for three days"
+                }
+            }
+        },
+        "examinations.SoapRequest": {
+            "type": "object",
+            "properties": {
+                "assessment_notes": {
+                    "type": "string",
+                    "maxLength": 5000,
+                    "example": "URTI, good general condition."
+                },
+                "control_date": {
+                    "description": "only with outpatient_followup",
+                    "type": "string",
+                    "example": "2026-10-22"
+                },
+                "follow_up": {
+                    "type": "string",
+                    "enum": [
+                        "discharge",
+                        "outpatient_followup",
+                        "refer_inpatient",
+                        "refer_icu"
+                    ],
+                    "example": "outpatient_followup"
+                },
+                "objective_findings": {
+                    "type": "string",
+                    "maxLength": 5000,
+                    "example": "Pharynx hyperemic, no rhonchi, no wheezing."
+                },
+                "plan": {
+                    "type": "string",
+                    "maxLength": 5000,
+                    "example": "Paracetamol 3x500 mg, drink plenty of fluids, rest."
+                },
+                "primary_diagnosis": {
+                    "$ref": "#/definitions/examinations.DiagnosisInput"
+                },
+                "referral_notes": {
+                    "description": "only with refer_inpatient / refer_icu",
+                    "type": "string",
+                    "maxLength": 1000,
+                    "example": ""
+                },
+                "secondary_diagnoses": {
+                    "type": "array",
+                    "maxItems": 10,
+                    "items": {
+                        "$ref": "#/definitions/examinations.DiagnosisInput"
+                    }
+                },
+                "subjective": {
+                    "type": "string",
+                    "maxLength": 5000,
+                    "example": "Fever for 3 days, productive cough, no shortness of breath."
+                },
+                "version": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "example": 0
+                }
+            }
+        },
+        "examinations.SoapResponse": {
+            "type": "object",
+            "properties": {
+                "addenda": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/examinations.AddendumResponse"
+                    }
+                },
+                "assessment": {
+                    "$ref": "#/definitions/examinations.Assessment"
+                },
+                "control_date": {
+                    "type": "string",
+                    "example": "2026-10-22"
+                },
+                "doctor_id": {
+                    "type": "string",
+                    "example": "9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93"
+                },
+                "finalized_at": {
+                    "type": "string"
+                },
+                "follow_up": {
+                    "type": "string",
+                    "example": "outpatient_followup"
+                },
+                "objective": {
+                    "$ref": "#/definitions/examinations.Objective"
+                },
+                "plan": {
+                    "type": "string"
+                },
+                "referral_notes": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "draft",
+                        "final"
+                    ],
+                    "example": "draft"
+                },
+                "subjective": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "visit_id": {
+                    "type": "string",
+                    "example": "104dd35e-2b3a-4b2a-b38c-8bdd0e1ecc79"
+                }
+            }
+        },
+        "examinations.VisitSummary": {
+            "type": "object",
+            "properties": {
+                "doctor": {
+                    "type": "string",
+                    "example": "dr. Andi Wijaya"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "104dd35e-2b3a-4b2a-b38c-8bdd0e1ecc79"
+                },
+                "patient": {
+                    "$ref": "#/definitions/examinations.PatientSummary"
+                },
+                "poli": {
+                    "type": "string",
+                    "example": "General Clinic"
+                },
+                "visit_date": {
+                    "type": "string",
+                    "example": "2026-10-15"
+                },
+                "visit_status": {
+                    "enum": [
+                        "Registered",
+                        "Served",
+                        "Completed",
+                        "Paid",
+                        "Cancelled"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.VisitStatus"
+                        }
+                    ],
+                    "example": "Served"
+                },
+                "visit_type": {
+                    "enum": [
+                        "baru",
+                        "kontrol"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.VisitType"
+                        }
+                    ],
+                    "example": "baru"
+                }
+            }
+        },
+        "examinations.VitalRequest": {
+            "type": "object",
+            "required": [
+                "chief_complaint",
+                "consciousness",
+                "diastolic_bp",
+                "fall_risk",
+                "pain_score",
+                "pulse",
+                "respiratory_rate",
+                "spo2",
+                "systolic_bp",
+                "temperature"
+            ],
+            "properties": {
+                "allergies": {
+                    "description": "Either list the allergies or confirm there are none; an empty text alone is not an answer.",
+                    "type": "string",
+                    "maxLength": 1000,
+                    "example": "Penicillin, shrimp"
+                },
+                "chief_complaint": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "example": "Fever and cough for three days"
+                },
+                "consciousness": {
+                    "type": "string",
+                    "enum": [
+                        "compos_mentis",
+                        "apathy",
+                        "delirium",
+                        "somnolence",
+                        "stupor",
+                        "coma"
+                    ],
+                    "example": "compos_mentis"
+                },
+                "diastolic_bp": {
+                    "type": "integer",
+                    "maximum": 200,
+                    "minimum": 20,
+                    "example": 80
+                },
+                "fall_risk": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "fall_risk_level": {
+                    "description": "required when fall_risk is true",
+                    "type": "string",
+                    "enum": [
+                        "low",
+                        "moderate",
+                        "high"
+                    ],
+                    "example": "low"
+                },
+                "height_cm": {
+                    "description": "Height and weight go together; they are required for a first visit (visit_type baru).",
+                    "type": "number",
+                    "maximum": 250,
+                    "minimum": 30,
+                    "example": 165
+                },
+                "no_known_allergies": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "pain_score": {
+                    "type": "integer",
+                    "maximum": 10,
+                    "minimum": 0,
+                    "example": 2
+                },
+                "pulse": {
+                    "type": "integer",
+                    "maximum": 250,
+                    "minimum": 20,
+                    "example": 82
+                },
+                "respiratory_rate": {
+                    "type": "integer",
+                    "maximum": 80,
+                    "minimum": 4,
+                    "example": 18
+                },
+                "spo2": {
+                    "type": "integer",
+                    "maximum": 100,
+                    "minimum": 50,
+                    "example": 98
+                },
+                "systolic_bp": {
+                    "type": "integer",
+                    "maximum": 300,
+                    "minimum": 40,
+                    "example": 120
+                },
+                "temperature": {
+                    "type": "number",
+                    "maximum": 45,
+                    "minimum": 30,
+                    "example": 36.8
+                },
+                "version": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "example": 0
+                },
+                "weight_kg": {
+                    "type": "number",
+                    "maximum": 400,
+                    "minimum": 0.5,
+                    "example": 60
+                }
+            }
+        },
+        "examinations.VitalResponse": {
+            "type": "object",
+            "properties": {
+                "allergies": {
+                    "type": "string",
+                    "example": "Penicillin, shrimp"
+                },
+                "bmi": {
+                    "type": "number",
+                    "example": 22
+                },
+                "bmi_category": {
+                    "type": "string",
+                    "enum": [
+                        "severely_underweight",
+                        "underweight",
+                        "normal",
+                        "overweight",
+                        "obese",
+                        "not_applicable"
+                    ],
+                    "example": "normal"
+                },
+                "chief_complaint": {
+                    "type": "string",
+                    "example": "Fever and cough for three days"
+                },
+                "consciousness": {
+                    "type": "string",
+                    "example": "compos_mentis"
+                },
+                "diastolic_bp": {
+                    "type": "integer",
+                    "example": 80
+                },
+                "fall_risk": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "fall_risk_level": {
+                    "type": "string",
+                    "example": "low"
+                },
+                "flags": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/examinations.Flag"
+                    }
+                },
+                "height_cm": {
+                    "type": "number",
+                    "example": 165
+                },
+                "measured_at": {
+                    "type": "string"
+                },
+                "measured_by_user_id": {
+                    "type": "string",
+                    "example": "5b815a95-e4d9-40c1-bfc0-dccbe1f38722"
+                },
+                "no_known_allergies": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "pain_category": {
+                    "type": "string",
+                    "enum": [
+                        "none",
+                        "mild",
+                        "moderate",
+                        "severe"
+                    ],
+                    "example": "mild"
+                },
+                "pain_score": {
+                    "type": "integer",
+                    "example": 2
+                },
+                "pulse": {
+                    "type": "integer",
+                    "example": 82
+                },
+                "respiratory_rate": {
+                    "type": "integer",
+                    "example": 18
+                },
+                "spo2": {
+                    "type": "integer",
+                    "example": 98
+                },
+                "systolic_bp": {
+                    "type": "integer",
+                    "example": 120
+                },
+                "temperature": {
+                    "type": "number",
+                    "example": 36.8
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "visit_id": {
+                    "type": "string",
+                    "example": "104dd35e-2b3a-4b2a-b38c-8bdd0e1ecc79"
+                },
+                "weight_kg": {
+                    "type": "number",
+                    "example": 60
                 }
             }
         },

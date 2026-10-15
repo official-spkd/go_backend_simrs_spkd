@@ -10,6 +10,7 @@ import (
 
 	"gin-quickstart/internal/features/auth"
 	"gin-quickstart/internal/features/doctors"
+	"gin-quickstart/internal/features/examinations"
 	"gin-quickstart/internal/features/patients"
 	"gin-quickstart/internal/features/polis"
 	"gin-quickstart/internal/features/queues"
@@ -29,6 +30,9 @@ func New(ctx context.Context, cfg *config.Config, db *gorm.DB) (*gin.Engine, err
 
 	utils.InitValidation()
 	if err := patients.RegisterValidators(); err != nil {
+		return nil, fmt.Errorf("register validators: %w", err)
+	}
+	if err := examinations.RegisterValidators(); err != nil {
 		return nil, fmt.Errorf("register validators: %w", err)
 	}
 	if err := visits.RegisterValidators(); err != nil {
@@ -51,6 +55,7 @@ func New(ctx context.Context, cfg *config.Config, db *gorm.DB) (*gin.Engine, err
 	userSvc := users.NewService(users.NewRepository(db), roleSvc, doctorSvc)
 	patientSvc := patients.NewService(patients.NewRepository(db))
 	visitSvc := visits.NewService(visits.NewRepository(db), patientSvc, doctorSvc)
+	examinationSvc := examinations.NewService(examinations.NewRepository(db), visitSvc, userSvc)
 	queueSvc := queues.NewService(queues.NewRepository(db), userSvc)
 	if err := queueSvc.SeedCounters(ctx); err != nil {
 		return nil, fmt.Errorf("seed counters: %w", err)
@@ -74,6 +79,7 @@ func New(ctx context.Context, cfg *config.Config, db *gorm.DB) (*gin.Engine, err
 	frontOfficeOnly := middleware.RequireRoles(roles.FrontOffice)
 	patients.RegisterRoutes(v1, patients.NewHandler(patientSvc), requiredAuth, frontOfficeOnly)
 	visits.RegisterRoutes(v1, visits.NewHandler(visitSvc), requiredAuth, frontOfficeOnly)
+	examinations.RegisterRoutes(v1, examinations.NewHandler(examinationSvc), requiredAuth, middleware.RequireRoles(roles.Doctor))
 	queues.RegisterRoutes(v1, queues.NewHandler(queueSvc), requiredAuth, frontOfficeOnly,
 		middleware.RequireRoles(roles.FrontOffice, roles.Doctor))
 

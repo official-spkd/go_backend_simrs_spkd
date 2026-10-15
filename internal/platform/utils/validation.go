@@ -85,9 +85,9 @@ func fieldMessage(fe validator.FieldError) string {
 	case "len":
 		return fmt.Sprintf("%s must be exactly %s characters", field, fe.Param())
 	case "min":
-		return fmt.Sprintf("%s must be at least %s characters", field, fe.Param())
+		return fmt.Sprintf("%s must be at least %s %s", field, fe.Param(), unit(fe))
 	case "max":
-		return fmt.Sprintf("%s must be at most %s characters", field, fe.Param())
+		return fmt.Sprintf("%s must be at most %s %s", field, fe.Param(), unit(fe))
 	case "oneof":
 		return fmt.Sprintf("%s must be one of: %s", field, strings.ReplaceAll(fe.Param(), " ", ", "))
 	case "uuid":
@@ -140,4 +140,12 @@ func toSnake(s string) string {
 		b.WriteRune(unicode.ToLower(r))
 	}
 	return b.String()
+}
+
+// unit names what min and max count: items for lists, characters for text.
+func unit(fe validator.FieldError) string {
+	if fe.Kind() == reflect.Slice || fe.Kind() == reflect.Array {
+		return "items"
+	}
+	return "characters"
 }

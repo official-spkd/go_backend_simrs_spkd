@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	ErrNotFound          = errors.New("visit not found")
+	ErrNotFound          = models.ErrVisitNotFound
 	ErrAlreadyRegistered = errors.New("patient is already registered for this clinic on this date")
 )
 
