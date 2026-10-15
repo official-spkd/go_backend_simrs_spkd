@@ -2260,7 +2260,11 @@ paths:
       - polis
   /api/v1/queues:
     get:
-      description: Front Office only. Queues of one date (default today) in call order.
+      description: Front Office and doctors. Queues of one date (default today) in
+        call order. A signed-in doctor always gets only their own patients, taken
+        from the session (the doctor linked to their account); doctor_id is ignored
+        for doctors and an account without a linked doctor gets 403. Front Office
+        may filter by doctor_id.
       parameters:
       - description: Queue date (YYYY-MM-DD), default today
         in: query
@@ -2279,6 +2283,10 @@ paths:
       - description: Counter ID
         in: query
         name: counter_id
+        type: string
+      - description: Only this doctor's patients (Front Office; ignored for doctors)
+        in: query
+        name: doctor_id
         type: string
       - default: 1
         description: Page number

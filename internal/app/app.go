@@ -51,7 +51,7 @@ func New(ctx context.Context, cfg *config.Config, db *gorm.DB) (*gin.Engine, err
 	userSvc := users.NewService(users.NewRepository(db), roleSvc, doctorSvc)
 	patientSvc := patients.NewService(patients.NewRepository(db))
 	visitSvc := visits.NewService(visits.NewRepository(db), patientSvc, doctorSvc)
-	queueSvc := queues.NewService(queues.NewRepository(db))
+	queueSvc := queues.NewService(queues.NewRepository(db), userSvc)
 	if err := queueSvc.SeedCounters(ctx); err != nil {
 		return nil, fmt.Errorf("seed counters: %w", err)
 	}
@@ -74,7 +74,8 @@ func New(ctx context.Context, cfg *config.Config, db *gorm.DB) (*gin.Engine, err
 	frontOfficeOnly := middleware.RequireRoles(roles.FrontOffice)
 	patients.RegisterRoutes(v1, patients.NewHandler(patientSvc), requiredAuth, frontOfficeOnly)
 	visits.RegisterRoutes(v1, visits.NewHandler(visitSvc), requiredAuth, frontOfficeOnly)
-	queues.RegisterRoutes(v1, queues.NewHandler(queueSvc), requiredAuth, frontOfficeOnly)
+	queues.RegisterRoutes(v1, queues.NewHandler(queueSvc), requiredAuth, frontOfficeOnly,
+		middleware.RequireRoles(roles.FrontOffice, roles.Doctor))
 
 	return router, nil
 }

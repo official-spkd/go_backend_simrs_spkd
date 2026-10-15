@@ -16,12 +16,14 @@ type ListRequest struct {
 	Date      string              `form:"date" json:"date" binding:"omitempty,datetime=2006-01-02"`
 	Status    models.TicketStatus `form:"status" json:"status" binding:"omitempty,oneof=WAITING CALLING SERVING COMPLETED SKIPPED"`
 	CounterID string              `form:"counter_id" json:"counter_id" binding:"omitempty,uuid"`
+	DoctorID  string              `form:"doctor_id" json:"doctor_id" binding:"omitempty,uuid"`
 }
 
 type ListQuery struct {
 	Date      time.Time
 	Status    models.TicketStatus
 	CounterID string
+	DoctorID  string
 	Page      int
 	Limit     int
 }

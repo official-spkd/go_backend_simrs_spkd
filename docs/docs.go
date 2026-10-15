@@ -1888,7 +1888,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Front Office only. Queues of one date (default today) in call order.",
+                "description": "Front Office and doctors. Queues of one date (default today) in call order. A signed-in doctor always gets only their own patients, taken from the session (the doctor linked to their account); doctor_id is ignored for doctors and an account without a linked doctor gets 403. Front Office may filter by doctor_id.",
                 "produces": [
                     "application/json"
                 ],
@@ -1920,6 +1920,12 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Counter ID",
                         "name": "counter_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Only this doctor's patients (Front Office; ignored for doctors)",
+                        "name": "doctor_id",
                         "in": "query"
                     },
                     {

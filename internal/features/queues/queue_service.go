@@ -7,13 +7,22 @@ import (
 
 	"github.com/google/uuid"
 
+	"gin-quickstart/internal/features/roles"
 	"gin-quickstart/internal/platform/models"
 	"gin-quickstart/internal/platform/utils"
 )
 
 var defaultCounters = []string{"Loket 1", "Loket 2", "Loket 3"}
 
-var ErrCounterInactive = errors.New("counter is inactive")
+var (
+	ErrCounterInactive = errors.New("counter is inactive")
+	ErrDoctorNotLinked = errors.New("your account is not linked to a doctor record")
+)
+
+// UserFinder is satisfied by the users feature's service.
+type UserFinder interface {
+	Get(ctx context.Context, id uuid.UUID) (*models.User, error)
+}
 
 type counterState struct {
 	Counter models.Counter
@@ -31,7 +40,7 @@ type Service interface {
 	ListCounters(ctx context.Context) ([]counterState, error)
 	SetCounterActive(ctx context.Context, id uuid.UUID, active bool) (*counterState, error)
 	Display(ctx context.Context) (*display, error)
-	ListQueues(ctx context.Context, q ListQuery) ([]QueueResponse, int64, error)
+	ListQueues(ctx context.Context, q ListQuery, actor *utils.TokenClaims) ([]QueueResponse, int64, error)
 
 	Next(ctx context.Context, counterID uuid.UUID) (*models.Queue, error)
 	Recall(ctx context.Context, counterID uuid.UUID) (*models.Queue, error)
@@ -41,11 +50,12 @@ type Service interface {
 }
 
 type service struct {
-	repo Repository
+	repo  Repository
+	users UserFinder
 }
 
-func NewService(repo Repository) Service {
-	return &service{repo: repo}
+func NewService(repo Repository, users UserFinder) Service {
+	return &service{repo: repo, users: users}
 }
 
 func (s *service) SeedCounters(ctx context.Context) error {
@@ -105,7 +115,20 @@ func (s *service) Display(ctx context.Context) (*display, error) {
 	return &display{Date: today, WaitingCount: waiting, Counters: states}, nil
 }
 
-func (s *service) ListQueues(ctx context.Context, q ListQuery) ([]QueueResponse, int64, error) {
+// ListQueues lists the queues of a date. A signed-in doctor only ever gets their own patients:
+// the doctor comes from the account's session, and any doctor_id in the request is ignored.
+func (s *service) ListQueues(ctx context.Context, q ListQuery, actor *utils.TokenClaims) ([]QueueResponse, int64, error) {
+	if actor != nil && actor.Role == roles.Doctor {
+		user, err := s.users.Get(ctx, actor.UserID)
+		if errors.Is(err, models.ErrUserNotFound) || (err == nil && user.DoctorID == nil) {
+			return nil, 0, ErrDoctorNotLinked
+		}
+		if err != nil {
+			return nil, 0, err
+		}
+		q.DoctorID = user.DoctorID.String()
+	}
+
 	found, total, err := s.repo.ListQueues(ctx, q)
 	if err != nil {
 		return nil, 0, err

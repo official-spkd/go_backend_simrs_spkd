@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	"gin-quickstart/internal/platform/middleware"
 	"gin-quickstart/internal/platform/models"
 	"gin-quickstart/internal/platform/utils"
 )
@@ -76,13 +77,14 @@ func (h *Handler) SetCounterStatus(c *gin.Context) {
 }
 
 // @Summary		List queues
-// @Description	Front Office only. Queues of one date (default today) in call order.
+// @Description	Front Office and doctors. Queues of one date (default today) in call order. A signed-in doctor always gets only their own patients, taken from the session (the doctor linked to their account); doctor_id is ignored for doctors and an account without a linked doctor gets 403. Front Office may filter by doctor_id.
 // @Tags			queues
 // @Produce		json
 // @Security		BearerAuth
 // @Param			date		query		string	false	"Queue date (YYYY-MM-DD), default today"
 // @Param			status		query		string	false	"Queue status"	Enums(WAITING, CALLING, SERVING, COMPLETED, SKIPPED)
 // @Param			counter_id	query		string	false	"Counter ID"
+// @Param			doctor_id	query		string	false	"Only this doctor's patients (Front Office; ignored for doctors)"
 // @Param			page		query		int		false	"Page number"				default(1)
 // @Param			limit		query		int		false	"Items per page (max 100)"	default(20)
 // @Success		200			{object}	utils.PaginatedResponse{data=[]QueueResponse}
@@ -95,7 +97,7 @@ func (h *Handler) ListQueues(c *gin.Context) {
 	if !utils.BindQuery(c, &req) {
 		return
 	}
-	q := ListQuery{Date: utils.Today(), Status: req.Status, CounterID: req.CounterID}
+	q := ListQuery{Date: utils.Today(), Status: req.Status, CounterID: req.CounterID, DoctorID: req.DoctorID}
 	if req.Date != "" {
 		d, err := time.Parse(dateLayout, req.Date)
 		if err != nil {
@@ -106,7 +108,8 @@ func (h *Handler) ListQueues(c *gin.Context) {
 	}
 	q.Page, q.Limit = utils.ParsePagination(c)
 
-	data, total, err := h.service.ListQueues(c.Request.Context(), q)
+	actor, _ := middleware.ClaimsFrom(c)
+	data, total, err := h.service.ListQueues(c.Request.Context(), q, actor)
 	if err != nil {
 		h.fail(c, err)
 		return
@@ -239,6 +242,8 @@ func (h *Handler) act(c *gin.Context, message string, action func(context.Contex
 
 func (h *Handler) fail(c *gin.Context, err error) {
 	switch {
+	case errors.Is(err, ErrDoctorNotLinked):
+		utils.AbortWithError(c, http.StatusForbidden, err.Error())
 	case errors.Is(err, ErrCounterNotFound), errors.Is(err, ErrQueueNotFound), errors.Is(err, ErrNoWaiting):
 		utils.AbortWithError(c, http.StatusNotFound, err.Error())
 	case errors.Is(err, ErrCounterBusy), errors.Is(err, ErrCounterInactive),

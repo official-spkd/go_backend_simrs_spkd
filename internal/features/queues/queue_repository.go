@@ -128,6 +128,9 @@ func (r *repository) ListQueues(ctx context.Context, q ListQuery) ([]models.Queu
 	if q.CounterID != "" {
 		tx = tx.Where("counter_id = ?", q.CounterID)
 	}
+	if q.DoctorID != "" {
+		tx = tx.Where("visit_id IN (?)", r.db.Table("visits").Select("id").Where("doctor_id = ?", q.DoctorID))
+	}
 
 	var total int64
 	if err := tx.Count(&total).Error; err != nil {
