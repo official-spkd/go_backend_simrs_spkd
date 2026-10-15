@@ -3928,6 +3928,23 @@ const docTemplate = `{
                 }
             }
         },
+        "queues.DoctorRef": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "example": "9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "dr. Andi Wijaya, Sp.PD"
+                },
+                "specialization": {
+                    "type": "string",
+                    "example": "Internal Medicine"
+                }
+            }
+        },
         "queues.PatientRef": {
             "type": "object",
             "properties": {
@@ -3938,6 +3955,27 @@ const docTemplate = `{
                 "medical_record_number": {
                     "type": "string",
                     "example": "RM-000001"
+                }
+            }
+        },
+        "queues.PoliRef": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "example": "3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "General Clinic"
+                },
+                "prefix_code": {
+                    "type": "string",
+                    "example": "UMUM"
+                },
+                "room": {
+                    "type": "string",
+                    "example": "Room 101"
                 }
             }
         },
@@ -3961,13 +3999,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "doctor": {
-                    "type": "string",
-                    "example": "dr. Andi Wijaya"
-                },
-                "doctor_id": {
-                    "description": "empty for visits registered before doctors were managed",
-                    "type": "string",
-                    "example": "9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93"
+                    "$ref": "#/definitions/queues.DoctorRef"
                 },
                 "id": {
                     "type": "string",
@@ -3980,13 +4012,7 @@ const docTemplate = `{
                     "$ref": "#/definitions/queues.PatientRef"
                 },
                 "poli": {
-                    "type": "string",
-                    "example": "General Clinic"
-                },
-                "poli_id": {
-                    "description": "empty for visits registered before polis were managed",
-                    "type": "string",
-                    "example": "3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71"
+                    "$ref": "#/definitions/queues.PoliRef"
                 },
                 "poli_queue_number": {
                     "type": "string",

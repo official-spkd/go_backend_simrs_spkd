@@ -3,8 +3,6 @@ package queues
 import (
 	"time"
 
-	"github.com/google/uuid"
-
 	"gin-quickstart/internal/platform/models"
 )
 
@@ -33,6 +31,23 @@ type CounterRef struct {
 	Name string `json:"name" example:"Loket 1"`
 }
 
+// PoliRef is looked up from polis. Visits registered before polis were managed only have a name;
+// their id, prefix_code and room are empty.
+type PoliRef struct {
+	ID         string `json:"id" example:"3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71"`
+	PrefixCode string `json:"prefix_code" example:"UMUM"`
+	Name       string `json:"name" example:"General Clinic"`
+	Room       string `json:"room" example:"Room 101"`
+}
+
+// DoctorRef is looked up from doctors. Visits registered before doctors were managed only have a
+// name; their id and specialization are empty.
+type DoctorRef struct {
+	ID             string `json:"id" example:"9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93"`
+	Name           string `json:"name" example:"dr. Andi Wijaya, Sp.PD"`
+	Specialization string `json:"specialization" example:"Internal Medicine"`
+}
+
 type PatientRef struct {
 	MedicalRecordNumber string `json:"medical_record_number" example:"RM-000001"`
 	FullName            string `json:"full_name" example:"Siti Rahmawati"`
@@ -46,10 +61,8 @@ type QueueResponse struct {
 	Counter     *CounterRef         `json:"counter"`
 
 	VisitID         string     `json:"visit_id" example:"104dd35e-2b3a-4b2a-b38c-8bdd0e1ecc79"`
-	PoliID          string     `json:"poli_id" example:"3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71"` // empty for visits registered before polis were managed
-	Poli            string     `json:"poli" example:"General Clinic"`
-	DoctorID        string     `json:"doctor_id" example:"9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93"` // empty for visits registered before doctors were managed
-	Doctor          string     `json:"doctor" example:"dr. Andi Wijaya"`
+	Poli            PoliRef    `json:"poli"`
+	Doctor          DoctorRef  `json:"doctor"`
 	PoliQueueNumber string     `json:"poli_queue_number" example:"001"`
 	Patient         PatientRef `json:"patient"`
 
@@ -101,10 +114,8 @@ func toQueueResponse(q *models.Queue) QueueResponse {
 		Status:      q.Status,
 
 		VisitID:         q.VisitID.String(),
-		PoliID:          idString(q.Visit.PoliID),
-		Poli:            q.Visit.PoliName(),
-		DoctorID:        idString(q.Visit.DoctorID),
-		Doctor:          q.Visit.DoctorName(),
+		Poli:            poliRef(&q.Visit),
+		Doctor:          doctorRef(&q.Visit),
 		PoliQueueNumber: q.Visit.QueueNumber,
 		Patient: PatientRef{
 			MedicalRecordNumber: q.Visit.Patient.MedicalRecordNumber,
@@ -148,9 +159,16 @@ func toDisplayCounter(s counterState) DisplayCounter {
 	return out
 }
 
-func idString(id *uuid.UUID) string {
-	if id == nil {
-		return ""
+func poliRef(v *models.Visit) PoliRef {
+	if v.Poli == nil {
+		return PoliRef{Name: v.PoliName()}
 	}
-	return id.String()
+	return PoliRef{ID: v.Poli.ID.String(), PrefixCode: v.Poli.PrefixCode, Name: v.Poli.Name, Room: v.Poli.Room}
+}
+
+func doctorRef(v *models.Visit) DoctorRef {
+	if v.Doctor == nil {
+		return DoctorRef{Name: v.DoctorName()}
+	}
+	return DoctorRef{ID: v.Doctor.ID.String(), Name: v.Doctor.Name, Specialization: v.Doctor.Specialization}
 }
