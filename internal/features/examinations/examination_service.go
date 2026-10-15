@@ -62,6 +62,10 @@ type Service interface {
 	SaveSoap(ctx context.Context, visitID uuid.UUID, req SoapRequest, actor *utils.TokenClaims) (*SoapView, error)
 	FinalizeSoap(ctx context.Context, visitID uuid.UUID, actor *utils.TokenClaims) (*SoapView, error)
 	AddAddendum(ctx context.Context, visitID uuid.UUID, req AddendumRequest, actor *utils.TokenClaims) (*SoapView, error)
+
+	// AuthorizeAttachment checks that the doctor may read (write false) or change (write true) the
+	// files attached to the visit's SOAP note. It returns *utils.AccessError to refuse.
+	AuthorizeAttachment(ctx context.Context, visitID uuid.UUID, actor *utils.TokenClaims, write bool) error
 }
 
 type service struct {

@@ -649,6 +649,100 @@ definitions:
         example: 60
         type: number
     type: object
+  files.DownloadResponse:
+    properties:
+      expires_at:
+        type: string
+      file_name:
+        example: lab-result.pdf
+        type: string
+      url:
+        type: string
+    type: object
+  files.FileResponse:
+    properties:
+      content_type:
+        example: application/pdf
+        type: string
+      created_at:
+        type: string
+      file_name:
+        example: lab-result.pdf
+        type: string
+      id:
+        example: 6e1f4b2a-0d3c-4a58-8c1d-7b3e9d1f6c2a
+        type: string
+      resource_id:
+        example: 104dd35e-2b3a-4b2a-b38c-8bdd0e1ecc79
+        type: string
+      resource_type:
+        example: soap_note
+        type: string
+      size_bytes:
+        example: 482113
+        type: integer
+      status:
+        enum:
+        - pending
+        - uploaded
+        - rejected
+        example: uploaded
+        type: string
+      uploaded_at:
+        type: string
+      uploaded_by_user_id:
+        example: 5b815a95-e4d9-40c1-bfc0-dccbe1f38722
+        type: string
+    type: object
+  files.UploadRequest:
+    properties:
+      content_type:
+        example: application/pdf
+        maxLength: 100
+        type: string
+      file_name:
+        example: lab-result.pdf
+        maxLength: 255
+        type: string
+      resource_id:
+        example: 104dd35e-2b3a-4b2a-b38c-8bdd0e1ecc79
+        type: string
+      resource_type:
+        example: soap_note
+        maxLength: 50
+        type: string
+      size_bytes:
+        example: 482113
+        type: integer
+    required:
+    - content_type
+    - file_name
+    - resource_id
+    - resource_type
+    - size_bytes
+    type: object
+  files.UploadResponse:
+    properties:
+      file:
+        $ref: '#/definitions/files.FileResponse'
+      upload:
+        $ref: '#/definitions/files.UploadTarget'
+    type: object
+  files.UploadTarget:
+    properties:
+      expires_at:
+        type: string
+      headers:
+        additionalProperties:
+          type: string
+        type: object
+      method:
+        example: PUT
+        type: string
+      url:
+        example: http://localhost:9000/simrs-files/soap_note/...
+        type: string
+    type: object
   models.Gender:
     enum:
     - Male
@@ -2788,6 +2882,254 @@ paths:
       summary: Get one version of the vital signs
       tags:
       - examinations
+  /api/v1/files:
+    get:
+      description: Uploaded files of one record, oldest first. Pending and rejected
+        uploads are not listed.
+      parameters:
+      - description: Record type, e.g. soap_note
+        in: query
+        name: resource_type
+        required: true
+        type: string
+      - description: 'Record ID (for soap_note: the visit ID)'
+        in: query
+        name: resource_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/files.FileResponse'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List the files of a record
+      tags:
+      - files
+  /api/v1/files/{id}:
+    delete:
+      description: Removes the file from the record. Allowed only while the record
+        can still be changed (e.g. a SOAP note that is not final). Verified files
+        stay in storage for the record's history.
+      parameters:
+      - description: File ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a file
+      tags:
+      - files
+  /api/v1/files/{id}/complete:
+    post:
+      description: 'Step 3 of 3. Call after the PUT to storage succeeded. The server
+        checks the stored object: its size must equal size_bytes and its real content
+        (not just the declared type) must match content_type. A file that fails is
+        deleted from storage and rejected (422). Only then does the file become available.'
+      parameters:
+      - description: File ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/files.FileResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Complete a file upload
+      tags:
+      - files
+  /api/v1/files/{id}/download-url:
+    get:
+      description: Returns a presigned URL (valid for 5 minutes) the client opens
+        to download the file. The access check happens here, so keep the URL private.
+      parameters:
+      - description: File ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/files.DownloadResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a download URL
+      tags:
+      - files
+  /api/v1/files/uploads:
+    post:
+      consumes:
+      - application/json
+      description: 'Step 1 of 3. Checks that the caller may attach files to the record
+        (resource_type + resource_id, e.g. soap_note + the visit ID), registers a
+        pending file and returns a presigned URL. Step 2: the client sends the file
+        bytes straight to storage with an HTTP PUT to that URL, using the returned
+        headers (the API never carries the bytes). Step 3: call POST /files/{id}/complete.
+        The URL expires after 15 minutes. Content type, size and number of files are
+        limited per resource type.'
+      parameters:
+      - description: File to upload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/files.UploadRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/files.UploadResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Request a file upload
+      tags:
+      - files
   /api/v1/patients:
     get:
       description: Front Office only. Search by name, NIK, medical record number or

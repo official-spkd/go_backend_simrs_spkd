@@ -80,6 +80,9 @@ func New(ctx context.Context, cfg *config.Config, db *gorm.DB) (*gin.Engine, err
 	patients.RegisterRoutes(v1, patients.NewHandler(patientSvc), requiredAuth, frontOfficeOnly)
 	visits.RegisterRoutes(v1, visits.NewHandler(visitSvc), requiredAuth, frontOfficeOnly)
 	examinations.RegisterRoutes(v1, examinations.NewHandler(examinationSvc), requiredAuth, middleware.RequireRoles(roles.Doctor))
+	if err := mountFiles(ctx, cfg, db, v1, requiredAuth, examinations.NewAttachmentTarget(examinationSvc)); err != nil {
+		return nil, err
+	}
 	queues.RegisterRoutes(v1, queues.NewHandler(queueSvc), requiredAuth, frontOfficeOnly,
 		middleware.RequireRoles(roles.FrontOffice, roles.Doctor))
 

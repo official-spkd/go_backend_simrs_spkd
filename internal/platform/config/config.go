@@ -16,11 +16,30 @@ type Config struct {
 	DB      DB
 	JWT     JWT
 	CORS    CORS
+	Storage Storage
 }
 
 type CORS struct {
 	AllowedOrigins []string
 }
+
+// Storage configures the MinIO (S3-compatible) object storage used for file uploads. It is
+// optional: with an empty Endpoint, file upload is switched off.
+type Storage struct {
+	Endpoint  string // host:port the API server uses to reach MinIO
+	AccessKey string
+	SecretKey string
+	Bucket    string
+	Region    string
+	UseSSL    bool
+
+	// PublicEndpoint is the host:port clients use to reach MinIO. Presigned URLs are signed for
+	// this host, so it must be an address the browser can open. Defaults to Endpoint.
+	PublicEndpoint string
+	PublicUseSSL   bool
+}
+
+func (s Storage) Enabled() bool { return s.Endpoint != "" }
 
 type JWT struct {
 	Secret    string
@@ -68,11 +87,34 @@ func Load() *Config {
 		CORS: CORS{
 			AllowedOrigins: splitCSV(getEnv("CORS_ALLOWED_ORIGINS", "")),
 		},
+		Storage: loadStorage(),
+	}
+}
+
+func loadStorage() Storage {
+	endpoint := getEnv("MINIO_ENDPOINT", "")
+	useSSL := getEnvBool("MINIO_USE_SSL", false)
+	return Storage{
+		Endpoint:       endpoint,
+		AccessKey:      getEnv("MINIO_ACCESS_KEY", ""),
+		SecretKey:      getEnv("MINIO_SECRET_KEY", ""),
+		Bucket:         getEnv("MINIO_BUCKET", ""),
+		Region:         getEnv("MINIO_REGION", "us-east-1"),
+		UseSSL:         useSSL,
+		PublicEndpoint: getEnv("MINIO_PUBLIC_ENDPOINT", endpoint),
+		PublicUseSSL:   getEnvBool("MINIO_PUBLIC_USE_SSL", useSSL),
 	}
 }
 
 func getEnv(key, fallback string) string {
 	if v, ok := os.LookupEnv(key); ok && v != "" {
+		return v
+	}
+	return fallback
+}
+
+func getEnvBool(key string, fallback bool) bool {
+	if v, err := strconv.ParseBool(os.Getenv(key)); err == nil {
 		return v
 	}
 	return fallback
@@ -99,6 +141,13 @@ func (c *Config) Validate() error {
 	for _, origin := range c.CORS.AllowedOrigins {
 		if origin == "*" {
 			return fmt.Errorf("CORS_ALLOWED_ORIGINS must list explicit origins, wildcard \"*\" is not allowed")
+		}
+	}
+
+	if c.Storage.Enabled() {
+		st := c.Storage
+		if st.AccessKey == "" || st.SecretKey == "" || st.Bucket == "" {
+			return fmt.Errorf("MINIO_ACCESS_KEY, MINIO_SECRET_KEY and MINIO_BUCKET are required when MINIO_ENDPOINT is set")
 		}
 	}
 

@@ -141,6 +141,13 @@ Defaults: `page=1`, `limit=20` (max 100). `prev_page` / `next_page` are `null` a
 - Never commit `.env`. Every new env var goes into `.env.example` (placeholder value) and `internal/platform/config`; validate required or unsafe values in `Config.Validate()`.
 - Do not weaken validation, CSP, auth, or ownership checks to make a test or demo pass.
 
+## File upload
+
+- Files use **presigned URLs to MinIO**: the client asks `POST /files/uploads`, PUTs the bytes straight to storage, then calls `POST /files/{id}/complete`; downloads go through `GET /files/{id}/download-url`. The API never carries file bytes. The storage sits behind `storage.ObjectStorage` (`platform/storage`).
+- File upload is **optional**: it is off while `MINIO_ENDPOINT` is empty. `MINIO_PUBLIC_ENDPOINT` must be an address the browser can open, because presigned URLs are signed for that host.
+- The `files` feature is generic. A feature gets attachments by implementing `files.Target` (resource type, roles, allowed types, size and count limits, `Authorize`) and passing it to `mountFiles` in `internal/app/files.go`. Do not add file logic to the owning feature; do not import `files` from it (it only needs the methods).
+- Never trust the client's content type: `Complete` checks the stored size and the real leading bytes. Only allow types `http.DetectContentType` can recognize.
+
 ## Swagger
 
 - General info lives only in `pkg/swagger/swagger.go`; handler docs are annotations directly above each handler. Regenerate with `make swagger`.
