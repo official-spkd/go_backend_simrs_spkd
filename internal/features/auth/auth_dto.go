@@ -7,29 +7,29 @@ import (
 )
 
 type LoginRequest struct {
-	Identifier string `json:"identifier" binding:"required" example:"198001012010011001"` // NIP or email
-	Password   string `json:"password" binding:"required" example:"s3cretPass!"`
+	Identifier string `json:"identifier" binding:"required" example:"superadmin@simrs.com"` // NIP or email
+	Password   string `json:"password" binding:"required" example:"superadmin"`
 }
 
 // RegisterRequest creates a staff account. Role is ignored for the very first account,
 // which always becomes a superadmin. doctor_id is required when the role is doctor (the doctor
 // record must exist first) and rejected for any other role.
 type RegisterRequest struct {
-	Name     string `json:"name" binding:"required,max=150" example:"Dr. Jane Doe"`
-	NIP      string `json:"nip" binding:"required,max=30" example:"198001012010011001"`
-	Email    string `json:"email" binding:"required,email,max=150" example:"jane.doe@hospital.id"`
-	Password string `json:"password" binding:"required,min=8,max=72" example:"s3cretPass!"`
-	Role     string `json:"role" example:"doctor"`
+	Name     string `json:"name" binding:"required,max=150" example:"Super Admin"`
+	NIP      string `json:"nip" binding:"required,max=30" example:"1000000001"`
+	Email    string `json:"email" binding:"required,email,max=150" example:"superadmin@simrs.com"`
+	Password string `json:"password" binding:"required,min=8,max=72" example:"superadmin"`
+	Role     string `json:"role" example:"superadmin"`
 
 	DoctorID string `json:"doctor_id" binding:"required_if=Role doctor,excluded_unless=Role doctor,omitempty,uuid" example:"9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93"`
 }
 
 type UserResponse struct {
 	ID        string    `json:"id" example:"3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71"`
-	Name      string    `json:"name" example:"Dr. Jane Doe"`
-	NIP       string    `json:"nip" example:"198001012010011001"`
-	Email     string    `json:"email" example:"jane.doe@hospital.id"`
-	Role      string    `json:"role" example:"doctor"`
+	Name      string    `json:"name" example:"Super Admin"`
+	NIP       string    `json:"nip" example:"1000000001"`
+	Email     string    `json:"email" example:"superadmin@simrs.com"`
+	Role      string    `json:"role" example:"superadmin"`
 	IsActive  bool      `json:"is_active" example:"true"`
 	CreatedAt time.Time `json:"created_at"`
 

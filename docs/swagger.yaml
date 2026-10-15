@@ -4,10 +4,10 @@ definitions:
     properties:
       identifier:
         description: NIP or email
-        example: "198001012010011001"
+        example: superadmin@simrs.com
         type: string
       password:
-        example: s3cretPass!
+        example: superadmin
         type: string
     required:
     - identifier
@@ -33,24 +33,24 @@ definitions:
         example: 9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93
         type: string
       email:
-        example: jane.doe@hospital.id
+        example: superadmin@simrs.com
         maxLength: 150
         type: string
       name:
-        example: Dr. Jane Doe
+        example: Super Admin
         maxLength: 150
         type: string
       nip:
-        example: "198001012010011001"
+        example: "1000000001"
         maxLength: 30
         type: string
       password:
-        example: s3cretPass!
+        example: superadmin
         maxLength: 72
         minLength: 8
         type: string
       role:
-        example: doctor
+        example: superadmin
         type: string
     required:
     - email
@@ -67,7 +67,7 @@ definitions:
         example: 9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93
         type: string
       email:
-        example: jane.doe@hospital.id
+        example: superadmin@simrs.com
         type: string
       id:
         example: 3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71
@@ -76,13 +76,13 @@ definitions:
         example: true
         type: boolean
       name:
-        example: Dr. Jane Doe
+        example: Super Admin
         type: string
       nip:
-        example: "198001012010011001"
+        example: "1000000001"
         type: string
       role:
-        example: doctor
+        example: superadmin
         type: string
     type: object
   doctors.DoctorRequest:

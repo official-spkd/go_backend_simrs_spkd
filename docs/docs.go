@@ -3174,11 +3174,11 @@ const docTemplate = `{
                 "identifier": {
                     "description": "NIP or email",
                     "type": "string",
-                    "example": "198001012010011001"
+                    "example": "superadmin@simrs.com"
                 },
                 "password": {
                     "type": "string",
-                    "example": "s3cretPass!"
+                    "example": "superadmin"
                 }
             }
         },
@@ -3218,27 +3218,27 @@ const docTemplate = `{
                 "email": {
                     "type": "string",
                     "maxLength": 150,
-                    "example": "jane.doe@hospital.id"
+                    "example": "superadmin@simrs.com"
                 },
                 "name": {
                     "type": "string",
                     "maxLength": 150,
-                    "example": "Dr. Jane Doe"
+                    "example": "Super Admin"
                 },
                 "nip": {
                     "type": "string",
                     "maxLength": 30,
-                    "example": "198001012010011001"
+                    "example": "1000000001"
                 },
                 "password": {
                     "type": "string",
                     "maxLength": 72,
                     "minLength": 8,
-                    "example": "s3cretPass!"
+                    "example": "superadmin"
                 },
                 "role": {
                     "type": "string",
-                    "example": "doctor"
+                    "example": "superadmin"
                 }
             }
         },
@@ -3255,7 +3255,7 @@ const docTemplate = `{
                 },
                 "email": {
                     "type": "string",
-                    "example": "jane.doe@hospital.id"
+                    "example": "superadmin@simrs.com"
                 },
                 "id": {
                     "type": "string",
@@ -3267,15 +3267,15 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string",
-                    "example": "Dr. Jane Doe"
+                    "example": "Super Admin"
                 },
                 "nip": {
                     "type": "string",
-                    "example": "198001012010011001"
+                    "example": "1000000001"
                 },
                 "role": {
                     "type": "string",
-                    "example": "doctor"
+                    "example": "superadmin"
                 }
             }
         },
