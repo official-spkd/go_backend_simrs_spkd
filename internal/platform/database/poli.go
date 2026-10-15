@@ -6,10 +6,10 @@ import (
 )
 
 const recountSQL = `UPDATE polis SET doctor_count =
-	(SELECT COUNT(*) FROM users WHERE users.poli_id = polis.id AND users.is_active)`
+	(SELECT COUNT(*) FROM doctors WHERE doctors.poli_id = polis.id AND doctors.is_active)`
 
-// RecountPoliDoctors recalculates doctor_count of the given polis from the users table
-// (active doctors only). Call it inside the same transaction as the user change.
+// RecountPoliDoctors recalculates doctor_count of the given polis from the doctors table
+// (active doctors only). Call it inside the same transaction as the doctor change.
 func RecountPoliDoctors(tx *gorm.DB, poliIDs ...uuid.UUID) error {
 	if len(poliIDs) == 0 {
 		return nil

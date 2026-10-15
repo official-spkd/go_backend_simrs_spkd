@@ -9,6 +9,7 @@ import (
 	"gorm.io/gorm"
 
 	"gin-quickstart/internal/features/auth"
+	"gin-quickstart/internal/features/doctors"
 	"gin-quickstart/internal/features/patients"
 	"gin-quickstart/internal/features/polis"
 	"gin-quickstart/internal/features/queues"
@@ -49,6 +50,7 @@ func New(ctx context.Context, cfg *config.Config, db *gorm.DB) (*gin.Engine, err
 	userSvc := users.NewService(users.NewRepository(db), roleSvc, poliSvc)
 	patientSvc := patients.NewService(patients.NewRepository(db))
 	visitSvc := visits.NewService(visits.NewRepository(db), patientSvc)
+	doctorSvc := doctors.NewService(doctors.NewRepository(db), poliSvc)
 	queueSvc := queues.NewService(queues.NewRepository(db))
 	if err := queueSvc.SeedCounters(ctx); err != nil {
 		return nil, fmt.Errorf("seed counters: %w", err)
@@ -66,6 +68,7 @@ func New(ctx context.Context, cfg *config.Config, db *gorm.DB) (*gin.Engine, err
 	auth.RegisterRoutes(v1, auth.NewHandler(authSvc), optionalAuth, requiredAuth)
 	superadminOnly := middleware.RequireRoles(roles.Superadmin)
 	roles.RegisterRoutes(v1, roles.NewHandler(roleSvc), requiredAuth, superadminOnly)
+	doctors.RegisterRoutes(v1, doctors.NewHandler(doctorSvc), requiredAuth, superadminOnly)
 	users.RegisterRoutes(v1, users.NewHandler(userSvc), requiredAuth, superadminOnly)
 	polis.RegisterRoutes(v1, polis.NewHandler(poliSvc), requiredAuth, superadminOnly)
 	frontOfficeOnly := middleware.RequireRoles(roles.FrontOffice)

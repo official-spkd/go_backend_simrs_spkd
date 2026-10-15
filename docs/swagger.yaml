@@ -121,6 +121,90 @@ definitions:
         example: doctor
         type: string
     type: object
+  doctors.DoctorRequest:
+    properties:
+      ihs_number:
+        example: "10009880728"
+        maxLength: 20
+        minLength: 5
+        type: string
+      is_active:
+        example: true
+        type: boolean
+      name:
+        example: dr. Andi Wijaya, Sp.PD
+        maxLength: 150
+        minLength: 3
+        type: string
+      poli_id:
+        example: 3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71
+        type: string
+      sip_number:
+        example: 446/001/SIP-D/2026
+        maxLength: 50
+        minLength: 5
+        type: string
+      specialization:
+        example: Internal Medicine
+        maxLength: 100
+        type: string
+      str_number:
+        example: "3111100220123456"
+        maxLength: 50
+        minLength: 5
+        type: string
+    required:
+    - name
+    - poli_id
+    - sip_number
+    - specialization
+    - str_number
+    type: object
+  doctors.PoliRef:
+    properties:
+      id:
+        example: 3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71
+        type: string
+      name:
+        example: General Clinic
+        type: string
+      prefix_code:
+        example: UMUM
+        type: string
+      room:
+        example: Room 101
+        type: string
+    type: object
+  doctors.Response:
+    properties:
+      created_at:
+        type: string
+      id:
+        example: 9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93
+        type: string
+      ihs_number:
+        example: "10009880728"
+        type: string
+      is_active:
+        example: true
+        type: boolean
+      name:
+        example: dr. Andi Wijaya, Sp.PD
+        type: string
+      poli:
+        $ref: '#/definitions/doctors.PoliRef'
+      sip_number:
+        example: 446/001/SIP-D/2026
+        type: string
+      specialization:
+        example: Internal Medicine
+        type: string
+      str_number:
+        example: "3111100220123456"
+        type: string
+      updated_at:
+        type: string
+    type: object
   models.Gender:
     enum:
     - Male
@@ -1499,6 +1583,239 @@ paths:
       summary: Waiting-room display data
       tags:
       - display
+  /api/v1/doctors:
+    get:
+      description: Any signed-in user, so it can feed doctor dropdowns (use poli_id
+        and is_active=true). Search by name, SIP, STR or IHS number.
+      parameters:
+      - description: Search by name, SIP, STR or IHS number
+        in: query
+        name: search
+        type: string
+      - description: Only doctors of this poli
+        in: query
+        name: poli_id
+        type: string
+      - description: Exact specialization (case-insensitive)
+        in: query
+        name: specialization
+        type: string
+      - description: Filter by status
+        in: query
+        name: is_active
+        type: boolean
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page (max 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.PaginatedResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/doctors.Response'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List doctors
+      tags:
+      - doctors
+    post:
+      consumes:
+      - application/json
+      description: Superadmin only. The poli must exist and be active. SIP, STR and
+        IHS numbers must be unique; ihs_number is optional. The poli's doctor count
+        is updated automatically.
+      parameters:
+      - description: Doctor data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/doctors.DoctorRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/doctors.Response'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a doctor
+      tags:
+      - doctors
+  /api/v1/doctors/{id}:
+    delete:
+      description: Superadmin only. The poli's doctor count is updated automatically.
+      parameters:
+      - description: Doctor ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a doctor
+      tags:
+      - doctors
+    get:
+      description: Any signed-in user.
+      parameters:
+      - description: Doctor ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/doctors.Response'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a doctor
+      tags:
+      - doctors
+    put:
+      consumes:
+      - application/json
+      description: Superadmin only. Replaces all editable fields; a missing is_active
+        keeps the current status. Moving a doctor to another poli updates both polis'
+        doctor counts. The new poli must be active.
+      parameters:
+      - description: Doctor ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Doctor data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/doctors.DoctorRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/doctors.Response'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a doctor
+      tags:
+      - doctors
   /api/v1/patients:
     get:
       description: Front Office only. Search by name, NIK, medical record number or
