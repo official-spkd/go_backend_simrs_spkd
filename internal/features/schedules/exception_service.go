@@ -35,7 +35,9 @@ func (s *service) CreateException(ctx context.Context, req ExceptionRequest) (*E
 	if err != nil {
 		return nil, err
 	}
-	if own == nil {
+	// Without a substitute there is nothing to close; with one, a doctor who has no session that
+	// day can still be covered so the poli keeps a doctor.
+	if own == nil && req.SubstituteDoctorID == "" {
 		return nil, ErrNoSession
 	}
 

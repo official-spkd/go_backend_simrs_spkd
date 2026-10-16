@@ -39,6 +39,26 @@ func (f *fakeRepo) ListByDoctors(_ context.Context, ids []uuid.UUID) ([]models.D
 	}
 	return out, nil
 }
+func (f *fakeRepo) ListTemplates(_ context.Context, doctorID, _ string) ([]models.DoctorSchedule, error) {
+	var out []models.DoctorSchedule
+	for _, sc := range f.schedules {
+		if doctorID == "" || sc.DoctorID.String() == doctorID {
+			out = append(out, sc)
+		}
+	}
+	return out, nil
+}
+func (f *fakeRepo) SubstitutionsInRange(_ context.Context, ids []uuid.UUID, from, to time.Time) ([]models.ScheduleException, error) {
+	var out []models.ScheduleException
+	for _, e := range f.exceptions {
+		for _, id := range ids {
+			if e.SubstituteDoctorID != nil && *e.SubstituteDoctorID == id && !e.Date.Before(from) && !e.Date.After(to) {
+				out = append(out, e)
+			}
+		}
+	}
+	return out, nil
+}
 func (f *fakeRepo) Update(context.Context, *models.DoctorSchedule) error { return nil }
 func (f *fakeRepo) Delete(context.Context, uuid.UUID) error              { return nil }
 func (f *fakeRepo) FilledCounts(context.Context, []uuid.UUID, time.Time, time.Time) (map[FilledKey]int, error) {
@@ -93,7 +113,7 @@ func newFixture() (*service, *fakeRepo, *models.Doctor, *models.Doctor) {
 	repo := &fakeRepo{filled: map[FilledKey]int{}}
 	for _, d := range []*models.Doctor{maya, yudha} {
 		repo.schedules = append(repo.schedules, models.DoctorSchedule{
-			ID: uuid.New(), DoctorID: d.ID, Weekday: int(time.Tuesday), StartTime: "08:00", EndTime: "12:00",
+			ID: uuid.New(), DoctorID: d.ID, Doctor: d, Weekday: int(time.Tuesday), StartTime: "08:00", EndTime: "12:00",
 			JKNQuota: 20, NonJKNQuota: 10, EffectiveDate: utils.Today(),
 		})
 	}
@@ -249,5 +269,87 @@ func TestSessionsPeriodLimits(t *testing.T) {
 	}
 	if len(got) < 4 || len(got) > 5 {
 		t.Fatalf("a Tuesday-only schedule over 30 days gives 4 or 5 sessions, got %d", len(got))
+	}
+}
+
+func TestAvailabilityOneRowPerDoctorAndDate(t *testing.T) {
+	svc, repo, maya, yudha := newFixture()
+	tuesday := nextWeekday(time.Tuesday)
+	key := tuesday.Format(dateLayout)
+	repo.filled[FilledKey{maya.ID, key}] = 5
+	repo.filled[FilledKey{yudha.ID, key}] = 8
+	repo.exceptions = append(repo.exceptions, models.ScheduleException{DoctorID: maya.ID, Date: tuesday, SubstituteDoctorID: &yudha.ID, SubstituteDoctor: yudha})
+
+	got, err := svc.Availability(context.Background(), AvailabilityQuery{From: key, To: key})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 2 {
+		t.Fatalf("got %d rows, want one per doctor", len(got))
+	}
+	byDoctor := map[string]AvailabilityResponse{}
+	for _, row := range got {
+		byDoctor[row.Doctor.ID] = row
+	}
+	if r := byDoctor[maya.ID.String()]; r.Status != StatusLeave || r.TotalQuota != 0 || r.Remaining != 0 {
+		t.Fatalf("doctor on leave = %+v", r)
+	}
+	// The substitute's own 8 visits plus the 5 of the doctor on leave.
+	if r := byDoctor[yudha.ID.String()]; r.Status != StatusSubstitute || r.Filled != 13 || r.Remaining != 17 {
+		t.Fatalf("substitute = %+v", r)
+	}
+}
+
+func TestAvailabilitySkipsInactiveDoctors(t *testing.T) {
+	svc, repo, maya, _ := newFixture()
+	maya.IsActive = false
+	for i := range repo.schedules {
+		if repo.schedules[i].DoctorID == maya.ID {
+			repo.schedules[i].Doctor = maya
+		}
+	}
+	got, err := svc.Availability(context.Background(), AvailabilityQuery{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, row := range got {
+		if row.Doctor.ID == maya.ID.String() {
+			t.Fatalf("inactive doctor listed: %+v", row)
+		}
+	}
+}
+
+func TestSubstituteCoversDoctorWithoutSession(t *testing.T) {
+	svc, repo, maya, yudha := newFixture()
+	monday := nextWeekday(time.Monday) // Maya has no Monday session; Yudha gets one
+	repo.schedules = append(repo.schedules, models.DoctorSchedule{
+		ID: uuid.New(), DoctorID: yudha.ID, Doctor: yudha, Weekday: int(time.Monday), StartTime: "08:00", EndTime: "12:00",
+		JKNQuota: 10, NonJKNQuota: 10, EffectiveDate: utils.Today(),
+	})
+	key := monday.Format(dateLayout)
+
+	req := ExceptionRequest{DoctorID: maya.ID.String(), Date: key, SubstituteDoctorID: yudha.ID.String(), Reason: "No practice"}
+	if _, err := svc.CreateException(context.Background(), req); err != nil {
+		t.Fatalf("substitute for a doctor without a session: %v", err)
+	}
+	if len(repo.exceptions) != 1 {
+		t.Fatalf("exception not stored")
+	}
+	repo.exceptions[0].Doctor = maya
+
+	sessions, err := svc.Sessions(context.Background(), SessionQuery{DoctorID: maya.ID.String(), From: key, To: key})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(sessions) != 1 || sessions[0].Status != StatusSubstitute || sessions[0].Doctor.ID != yudha.ID.String() || sessions[0].ReplacedDoctor == nil {
+		t.Fatalf("sessions = %+v", sessions)
+	}
+
+	avail, err := svc.Availability(context.Background(), AvailabilityQuery{From: key, To: key})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(avail) != 1 || avail[0].Status != StatusSubstitute || avail[0].ReplacedDoctor == nil || avail[0].ReplacedDoctor.Name != maya.Name {
+		t.Fatalf("availability = %+v", avail)
 	}
 }

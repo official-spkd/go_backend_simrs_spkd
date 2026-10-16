@@ -44,6 +44,8 @@ type Service interface {
 	DeleteException(ctx context.Context, id uuid.UUID) error
 
 	Sessions(ctx context.Context, q SessionQuery) ([]SessionResponse, error)
+
+	Availability(ctx context.Context, q AvailabilityQuery) ([]AvailabilityResponse, error)
 }
 
 type service struct {

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"gin-quickstart/internal/features/patients"
+	"gin-quickstart/internal/features/schedules"
 	"gin-quickstart/internal/features/visits"
 	"gin-quickstart/internal/platform/models"
 	"gin-quickstart/internal/platform/utils"
@@ -29,10 +30,17 @@ type PatientRegistrar interface {
 	Create(ctx context.Context, req patients.PatientRequest) (*models.Patient, error)
 }
 
+// SessionFinder is satisfied by the schedules feature's service.
+type SessionFinder interface {
+	Availability(ctx context.Context, q schedules.AvailabilityQuery) ([]schedules.AvailabilityResponse, error)
+}
+
 type Service interface {
 	LookupPatient(ctx context.Context, req LookupRequest) (*PatientBrief, error)
 	ListPolis(ctx context.Context) ([]PoliBrief, error)
 	ListDoctors(ctx context.Context, poliID string) ([]DoctorBrief, error)
+	// ListSessions returns today's sessions only; the kiosk cannot look at other dates.
+	ListSessions(ctx context.Context, poliID string) ([]SessionBrief, error)
 	// RegisterPatient creates a new patient record; the kiosk then registers a visit for them.
 	RegisterPatient(ctx context.Context, req patients.PatientRequest) (*PatientBrief, error)
 	Register(ctx context.Context, req RegisterRequest) (*Ticket, error)
@@ -42,10 +50,11 @@ type service struct {
 	repo     Repository
 	visits   VisitRegistrar
 	patients PatientRegistrar
+	sessions SessionFinder
 }
 
-func NewService(repo Repository, visits VisitRegistrar, patients PatientRegistrar) Service {
-	return &service{repo: repo, visits: visits, patients: patients}
+func NewService(repo Repository, visits VisitRegistrar, patients PatientRegistrar, sessions SessionFinder) Service {
+	return &service{repo: repo, visits: visits, patients: patients, sessions: sessions}
 }
 
 func (s *service) RegisterPatient(ctx context.Context, req patients.PatientRequest) (*PatientBrief, error) {
@@ -105,6 +114,22 @@ func (s *service) ListDoctors(ctx context.Context, poliID string) ([]DoctorBrief
 	out := make([]DoctorBrief, len(found))
 	for i := range found {
 		out[i] = toDoctorBrief(&found[i])
+	}
+	return out, nil
+}
+
+func (s *service) ListSessions(ctx context.Context, poliID string) ([]SessionBrief, error) {
+	today := utils.Today().Format("2006-01-02")
+	found, err := s.sessions.Availability(ctx, schedules.AvailabilityQuery{PoliID: poliID, From: today, To: today})
+	if err != nil {
+		return nil, err
+	}
+	out := make([]SessionBrief, len(found))
+	for i, a := range found {
+		out[i] = SessionBrief{DoctorID: a.Doctor.ID, StartTime: a.StartTime, EndTime: a.EndTime, Status: a.Status, TotalQuota: a.TotalQuota, Remaining: a.Remaining}
+		if a.ReplacedDoctor != nil {
+			out[i].ReplacedDoctorName = &a.ReplacedDoctor.Name
+		}
 	}
 	return out, nil
 }

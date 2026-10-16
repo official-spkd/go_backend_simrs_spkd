@@ -58,9 +58,10 @@ func New(ctx context.Context, cfg *config.Config, db *gorm.DB) (*gin.Engine, err
 
 	userSvc := users.NewService(users.NewRepository(db), roleSvc, doctorSvc)
 	patientSvc := patients.NewService(patients.NewRepository(db))
+	scheduleSvc := schedules.NewService(schedules.NewRepository(db), doctorSvc)
 	visitSvc := visits.NewService(visits.NewRepository(db), patientSvc, doctorSvc)
 	examinationSvc := examinations.NewService(examinations.NewRepository(db), visitSvc, userSvc)
-	apmSvc := apm.NewService(apm.NewRepository(db), visitSvc, patientSvc)
+	apmSvc := apm.NewService(apm.NewRepository(db), visitSvc, patientSvc, scheduleSvc)
 	queueSvc := queues.NewService(queues.NewRepository(db), userSvc)
 	if err := queueSvc.SeedCounters(ctx); err != nil {
 		return nil, fmt.Errorf("seed counters: %w", err)
@@ -87,7 +88,9 @@ func New(ctx context.Context, cfg *config.Config, db *gorm.DB) (*gin.Engine, err
 	doctors.RegisterRoutes(v1, doctors.NewHandler(doctorSvc), requiredAuth, superadminOnly)
 	users.RegisterRoutes(v1, users.NewHandler(userSvc), requiredAuth, superadminOnly)
 	polis.RegisterRoutes(v1, polis.NewHandler(poliSvc), requiredAuth, superadminOnly)
-	schedules.RegisterRoutes(v1, schedules.NewHandler(schedules.NewService(schedules.NewRepository(db), doctorSvc)), requiredAuth, superadminOnly)
+	scheduleHandler := schedules.NewHandler(scheduleSvc)
+	schedules.RegisterRoutes(v1, scheduleHandler, requiredAuth, superadminOnly)
+	schedules.RegisterAvailabilityRoutes(v1, scheduleHandler, requiredAuth, middleware.RequireRoles(roles.FrontOffice, roles.Superadmin))
 	frontOfficeOnly := middleware.RequireRoles(roles.FrontOffice)
 	patients.RegisterRoutes(v1, patients.NewHandler(patientSvc), requiredAuth, frontOfficeOnly)
 	visits.RegisterRoutes(v1, visits.NewHandler(visitSvc), requiredAuth, frontOfficeOnly)

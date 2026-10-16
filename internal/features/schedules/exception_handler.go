@@ -9,7 +9,7 @@ import (
 )
 
 // @Summary		Record a leave
-// @Description	Superadmin only. Closes the doctor's session on a date (today or later) and optionally hands it to a substitute doctor. The doctor must have a schedule on that date. A substitute must be a different, active doctor who practices on that weekday and is not on leave that day. When visits are already registered, a substitute is required (409). Visits are not moved or cancelled; the substitute's session counts them against its quota.
+// @Description	Superadmin only. Closes the doctor's session on a date (today or later) and optionally hands it to a substitute doctor. The doctor must have a schedule on that date, unless a substitute is given: a substitute can also cover a doctor who has no session that day. A substitute must be a different, active doctor who practices on that weekday and is not on leave that day. When visits are already registered, a substitute is required (409). Visits are not moved or cancelled; the substitute's session counts them against its quota.
 // @Tags			schedules
 // @Accept			json
 // @Produce		json

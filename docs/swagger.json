@@ -242,6 +242,61 @@
                 }
             }
         },
+        "/api/v1/apm/sessions": {
+            "get": {
+                "description": "Public (no login). Today's practice hours and remaining quota of the doctors with a weekly schedule, optionally of one poli. A doctor on leave has status \"leave\"; a doctor without a session today is absent. Only today can be asked. Rate limited per IP.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "apm"
+                ],
+                "summary": "APM: list today's sessions",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Only doctors of this poli",
+                        "name": "poli_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/apm.SessionBrief"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/apm/visits": {
             "post": {
                 "description": "Public (no login). Registers a patient (patient_id from the lookup, or from POST /apm/patients for a new patient) for a visit today with an active doctor of the chosen poli, following the same rules as the front desk (BPJS and insurance fields, responsible person under 18, no double registration). The kiosk cannot pick another date or approve the visit. Returns the ticket to print. Rate limited per IP (60 per minute).",
@@ -492,7 +547,91 @@
                 }
             }
         },
-        "/api/v1/cashier/bills": {
+        "/api/v1/availability": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Front office and superadmin. One row per active doctor and date from the weekly schedules: practice hours, total quota, registered visits and what is left. Defaults to 7 days from today; a period spans at most 31 days. A \"leave\" row has no quota; a \"substitute\" row counts the visits of the doctor on leave. Registration (POST /visits) refuses a doctor without a session, on leave, or with no quota left.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "schedules"
+                ],
+                "summary": "List doctor availability",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Only doctors of this poli",
+                        "name": "poli_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Only this doctor",
+                        "name": "doctor_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "First date (YYYY-MM-DD), default today",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Last date (YYYY-MM-DD), default 6 days after from",
+                        "name": "to",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/schedules.AvailabilityResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/counters": {
             "get": {
                 "security": [
                     {
@@ -4169,7 +4308,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Front Office only. NIK must be unique and exactly 16 digits; bpjs_number is optional (13 digits, unique).",
+                "description": "Superadmin only. Closes the doctor's session on a date (today or later) and optionally hands it to a substitute doctor. The doctor must have a schedule on that date, unless a substitute is given: a substitute can also cover a doctor who has no session that day. A substitute must be a different, active doctor who practices on that weekday and is not on leave that day. When visits are already registered, a substitute is required (409). Visits are not moved or cancelled; the substitute's session counts them against its quota.",
                 "consumes": [
                     "application/json"
                 ],
@@ -7497,7 +7636,46 @@
                 }
             }
         },
-        "cashier.SchemeRequest": {
+        "apm.SessionBrief": {
+            "type": "object",
+            "properties": {
+                "doctor_id": {
+                    "type": "string",
+                    "example": "9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93"
+                },
+                "end_time": {
+                    "type": "string",
+                    "example": "12:00"
+                },
+                "remaining": {
+                    "type": "integer",
+                    "example": 7
+                },
+                "replaced_doctor_name": {
+                    "description": "ReplacedDoctorName is the doctor this one replaces today (leave or no session); null otherwise.",
+                    "type": "string",
+                    "example": "dr. Maya Putri, Sp.PD"
+                },
+                "start_time": {
+                    "type": "string",
+                    "example": "08:00"
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "active",
+                        "substitute",
+                        "leave"
+                    ],
+                    "example": "active"
+                },
+                "total_quota": {
+                    "type": "integer",
+                    "example": 30
+                }
+            }
+        },
+        "apm.Ticket": {
             "type": "object",
             "required": [
                 "scheme"
@@ -9794,6 +9972,55 @@
                     "type": "string",
                     "maxLength": 100,
                     "example": "Head Nurse"
+                }
+            }
+        },
+        "schedules.AvailabilityResponse": {
+            "type": "object",
+            "properties": {
+                "date": {
+                    "type": "string",
+                    "example": "2026-10-16"
+                },
+                "doctor": {
+                    "$ref": "#/definitions/schedules.DoctorRef"
+                },
+                "end_time": {
+                    "type": "string",
+                    "example": "12:00"
+                },
+                "filled": {
+                    "type": "integer",
+                    "example": 23
+                },
+                "remaining": {
+                    "type": "integer",
+                    "example": 7
+                },
+                "replaced_doctor": {
+                    "description": "ReplacedDoctor is the doctor on leave or without a session whom this doctor replaces; only on \"substitute\" rows.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/schedules.DoctorRef"
+                        }
+                    ]
+                },
+                "start_time": {
+                    "type": "string",
+                    "example": "08:00"
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "active",
+                        "substitute",
+                        "leave"
+                    ],
+                    "example": "active"
+                },
+                "total_quota": {
+                    "type": "integer",
+                    "example": 30
                 }
             }
         },

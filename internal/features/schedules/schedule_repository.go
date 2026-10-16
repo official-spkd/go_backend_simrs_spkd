@@ -29,6 +29,8 @@ type Repository interface {
 	FindByID(ctx context.Context, id uuid.UUID) (*models.DoctorSchedule, error)
 	List(ctx context.Context, q ListQuery) ([]models.DoctorSchedule, int64, error)
 	ListByDoctors(ctx context.Context, doctorIDs []uuid.UUID) ([]models.DoctorSchedule, error)
+	// ListTemplates returns every template of the doctor or poli (both optional), unpaged.
+	ListTemplates(ctx context.Context, doctorID, poliID string) ([]models.DoctorSchedule, error)
 	Update(ctx context.Context, s *models.DoctorSchedule) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	// FilledCounts counts the non-cancelled visits per doctor and date; it is the quota usage.
@@ -38,6 +40,8 @@ type Repository interface {
 	FindException(ctx context.Context, id uuid.UUID) (*models.ScheduleException, error)
 	ListExceptions(ctx context.Context, q ExceptionQuery) ([]models.ScheduleException, int64, error)
 	ExceptionsInRange(ctx context.Context, doctorIDs []uuid.UUID, from, to time.Time) ([]models.ScheduleException, error)
+	// SubstitutionsInRange returns the leaves in which one of the given doctors is the substitute.
+	SubstitutionsInRange(ctx context.Context, substituteIDs []uuid.UUID, from, to time.Time) ([]models.ScheduleException, error)
 	DeleteException(ctx context.Context, id uuid.UUID) error
 }
 
@@ -102,6 +106,19 @@ func (r *repository) List(ctx context.Context, q ListQuery) ([]models.DoctorSche
 func (r *repository) ListByDoctors(ctx context.Context, doctorIDs []uuid.UUID) ([]models.DoctorSchedule, error) {
 	var out []models.DoctorSchedule
 	err := r.db.WithContext(ctx).Preload("Doctor.Poli").Where("doctor_id IN ?", doctorIDs).Find(&out).Error
+	return out, err
+}
+
+func (r *repository) ListTemplates(ctx context.Context, doctorID, poliID string) ([]models.DoctorSchedule, error) {
+	tx := r.db.WithContext(ctx).Preload("Doctor.Poli")
+	if doctorID != "" {
+		tx = tx.Where("doctor_id = ?", doctorID)
+	}
+	if poliID != "" {
+		tx = tx.Where("doctor_id IN (SELECT id FROM doctors WHERE poli_id = ?)", poliID)
+	}
+	var out []models.DoctorSchedule
+	err := tx.Order("doctor_id, weekday").Find(&out).Error
 	return out, err
 }
 
@@ -195,6 +212,14 @@ func (r *repository) ExceptionsInRange(ctx context.Context, doctorIDs []uuid.UUI
 	var out []models.ScheduleException
 	err := r.db.WithContext(ctx).Preload("Doctor.Poli").Preload("SubstituteDoctor.Poli").
 		Where("doctor_id IN ?", doctorIDs).Where("date BETWEEN ? AND ?", from, to).
+		Order("date").Find(&out).Error
+	return out, err
+}
+
+func (r *repository) SubstitutionsInRange(ctx context.Context, substituteIDs []uuid.UUID, from, to time.Time) ([]models.ScheduleException, error) {
+	var out []models.ScheduleException
+	err := r.db.WithContext(ctx).Preload("Doctor.Poli").Preload("SubstituteDoctor.Poli").
+		Where("substitute_doctor_id IN ?", substituteIDs).Where("date BETWEEN ? AND ?", from, to).
 		Order("date").Find(&out).Error
 	return out, err
 }

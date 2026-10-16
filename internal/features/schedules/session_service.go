@@ -3,6 +3,7 @@ package schedules
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -18,6 +19,30 @@ var (
 	ErrPeriodTooBig  = errors.New("period cannot be longer than 31 days")
 )
 
+// resolvePeriod parses an optional from/to pair. from defaults to today and to to defaultDays
+// after it; a period spans at most maxSessionDays.
+func resolvePeriod(rawFrom, rawTo string, defaultDays int) (from, to time.Time, err error) {
+	from = utils.Today()
+	if rawFrom != "" {
+		if from, err = parseDate(rawFrom); err != nil {
+			return from, to, err
+		}
+	}
+	to = from.AddDate(0, 0, defaultDays-1)
+	if rawTo != "" {
+		if to, err = parseDate(rawTo); err != nil {
+			return from, to, err
+		}
+	}
+	if to.Before(from) {
+		return from, to, ErrInvalidPeriod
+	}
+	if to.After(from.AddDate(0, 0, maxSessionDays-1)) {
+		return from, to, ErrPeriodTooBig
+	}
+	return from, to, nil
+}
+
 type templateKey struct {
 	doctorID uuid.UUID
 	weekday  int
@@ -31,23 +56,9 @@ func (s *service) Sessions(ctx context.Context, q SessionQuery) ([]SessionRespon
 		return nil, err
 	}
 	today := utils.Today()
-	from := today
-	if q.From != "" {
-		if from, err = parseDate(q.From); err != nil {
-			return nil, err
-		}
-	}
-	to := from.AddDate(0, 0, horizonDays-1)
-	if q.To != "" {
-		if to, err = parseDate(q.To); err != nil {
-			return nil, err
-		}
-	}
-	if to.Before(from) {
-		return nil, ErrInvalidPeriod
-	}
-	if to.After(from.AddDate(0, 0, maxSessionDays-1)) {
-		return nil, ErrPeriodTooBig
+	from, to, err := resolvePeriod(q.From, q.To, horizonDays)
+	if err != nil {
+		return nil, err
 	}
 
 	exceptions, err := s.repo.ExceptionsInRange(ctx, []uuid.UUID{doctor.ID}, from, to)
@@ -79,28 +90,31 @@ func (s *service) Sessions(ctx context.Context, q SessionQuery) ([]SessionRespon
 	out := []SessionResponse{}
 	for d := from; !d.After(to); d = d.AddDate(0, 0, 1) {
 		own := templates[templateKey{doctor.ID, int(d.Weekday())}]
-		if own == nil || d.Before(own.EffectiveDate) {
-			continue
-		}
+		hasSession := own != nil && !d.Before(own.EffectiveDate)
 		date := d.Format(dateLayout)
 		ownFilled := counts[FilledKey{DoctorID: doctor.ID, Date: date}]
 
 		leave := leaveByDate[date]
 		if leave == nil {
-			status := StatusActive
-			if d.Before(today) {
-				status = StatusCompleted
+			if hasSession {
+				status := StatusActive
+				if d.Before(today) {
+					status = StatusCompleted
+				}
+				out = append(out, newSession(date, doctor, own, ownFilled, status))
 			}
-			out = append(out, newSession(date, doctor, own, ownFilled, status))
 			continue
 		}
 
 		reason, exceptionID := leave.Reason, leave.ID.String()
-		row := newSession(date, doctor, own, 0, StatusLeave)
-		row.TotalQuota, row.JKNQuota, row.NonJKNQuota, row.Remaining = 0, 0, 0, 0
-		row.Reason, row.ExceptionID = &reason, &exceptionID
-		out = append(out, row)
+		if hasSession {
+			row := newSession(date, doctor, own, 0, StatusLeave)
+			row.TotalQuota, row.JKNQuota, row.NonJKNQuota, row.Remaining = 0, 0, 0, 0
+			row.Reason, row.ExceptionID = &reason, &exceptionID
+			out = append(out, row)
+		}
 
+		// A substitute can cover a doctor with no session that day, so this does not depend on hasSession.
 		if leave.SubstituteDoctor == nil {
 			continue
 		}
@@ -110,9 +124,9 @@ func (s *service) Sessions(ctx context.Context, q SessionQuery) ([]SessionRespon
 		}
 		// The substitute absorbs the visits already registered for the doctor on leave.
 		filled := counts[FilledKey{DoctorID: sub.DoctorID, Date: date}] + ownFilled
-		row = newSession(date, leave.SubstituteDoctor, sub, filled, StatusSubstitute)
+		row := newSession(date, leave.SubstituteDoctor, sub, filled, StatusSubstitute)
 		replaced := toDoctorRef(doctor)
-		row.ReplacedDoctor, row.ExceptionID = &replaced, &exceptionID
+		row.ReplacedDoctor, row.Reason, row.ExceptionID = &replaced, &reason, &exceptionID
 		out = append(out, row)
 	}
 	return out, nil
