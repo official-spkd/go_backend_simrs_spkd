@@ -2987,6 +2987,42 @@ paths:
       summary: 'APM: list polis'
       tags:
       - apm
+  /api/v1/apm/sessions:
+    get:
+      description: Public (no login). Today's practice hours and remaining quota of
+        the doctors with a weekly schedule, optionally of one poli. A doctor on leave
+        has status "leave"; a doctor without a session today is absent. Only today
+        can be asked. Rate limited per IP.
+      parameters:
+      - description: Only doctors of this poli
+        in: query
+        name: poli_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/apm.SessionBrief'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: 'APM: list today''s sessions'
+      tags:
+      - apm
   /api/v1/apm/visits:
     post:
       consumes:
@@ -3144,6 +3180,62 @@ paths:
       summary: Register a user
       tags:
       - auth
+  /api/v1/availability:
+    get:
+      description: 'Front office and superadmin. One row per active doctor and date
+        from the weekly schedules: practice hours, total quota, registered visits
+        and what is left. Defaults to 7 days from today; a period spans at most 31
+        days. A "leave" row has no quota; a "substitute" row counts the visits of
+        the doctor on leave. Registration (POST /visits) refuses a doctor without
+        a session, on leave, or with no quota left.'
+      parameters:
+      - description: Only doctors of this poli
+        in: query
+        name: poli_id
+        type: string
+      - description: Only this doctor
+        in: query
+        name: doctor_id
+        type: string
+      - description: First date (YYYY-MM-DD), default today
+        in: query
+        name: from
+        type: string
+      - description: Last date (YYYY-MM-DD), default 6 days after from
+        in: query
+        name: to
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/schedules.AvailabilityResponse'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List doctor availability
+      tags:
+      - schedules
   /api/v1/cashier/bills:
     get:
       description: Cashier only. Finalized and paid bills, most recent first. Search
@@ -3878,44 +3970,8 @@ paths:
       - BearerAuth: []
       summary: Call the next queue
       tags:
-      - apm
-  /api/v1/apm/sessions:
-    get:
-      description: Public (no login). Today's practice hours and remaining quota of
-        the doctors with a weekly schedule, optionally of one poli. A doctor on leave
-        has status "leave"; a doctor without a session today is absent. Only today
-        can be asked. Rate limited per IP.
-      parameters:
-      - description: Only doctors of this poli
-        in: query
-        name: poli_id
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/utils.Response'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/apm.SessionBrief'
-                  type: array
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/utils.ErrorResponse'
-        "429":
-          description: Too Many Requests
-          schema:
-            $ref: '#/definitions/utils.ErrorResponse'
-      summary: 'APM: list today''s sessions'
-      tags:
-      - apm
-  /api/v1/apm/visits:
+      - queues
+  /api/v1/counters/{id}/recall:
     post:
       description: Front Office only. Refreshes last_called_at and call_count of the
         counter's CALLING queue so displays ring the bell again.
@@ -4110,64 +4166,8 @@ paths:
       - BearerAuth: []
       summary: Activate or deactivate a counter
       tags:
-      - auth
-  /api/v1/availability:
-    get:
-      description: 'Front office and superadmin. One row per active doctor and date
-        from the weekly schedules: practice hours, total quota, registered visits
-        and what is left. Defaults to 7 days from today; a period spans at most 31
-        days. A "leave" row has no quota; a "substitute" row counts the visits of
-        the doctor on leave. Registration (POST /visits) refuses a doctor without
-        a session, on leave, or with no quota left.'
-      parameters:
-      - description: Only doctors of this poli
-        in: query
-        name: poli_id
-        type: string
-      - description: Only this doctor
-        in: query
-        name: doctor_id
-        type: string
-      - description: First date (YYYY-MM-DD), default today
-        in: query
-        name: from
-        type: string
-      - description: Last date (YYYY-MM-DD), default 6 days after from
-        in: query
-        name: to
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/utils.Response'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/schedules.AvailabilityResponse'
-                  type: array
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/utils.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/utils.ErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/utils.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: List doctor availability
-      tags:
-      - schedules
-  /api/v1/counters:
+      - queues
+  /api/v1/display/queues:
     get:
       description: Public (no login) so TV screens can poll it. Shows only queue numbers
         and counters, never patient data. A changed last_called_at means the bell

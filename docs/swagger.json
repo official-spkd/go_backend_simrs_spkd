@@ -631,7 +631,7 @@
                 }
             }
         },
-        "/api/v1/counters": {
+        "/api/v1/cashier/bills": {
             "get": {
                 "security": [
                     {
@@ -4308,7 +4308,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Superadmin only. Closes the doctor's session on a date (today or later) and optionally hands it to a substitute doctor. The doctor must have a schedule on that date, unless a substitute is given: a substitute can also cover a doctor who has no session that day. A substitute must be a different, active doctor who practices on that weekday and is not on leave that day. When visits are already registered, a substitute is required (409). Visits are not moved or cancelled; the substitute's session counts them against its quota.",
+                "description": "Front Office only. NIK must be unique and exactly 16 digits; bpjs_number is optional (13 digits, unique).",
                 "consumes": [
                     "application/json"
                 ],
@@ -5654,7 +5654,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Superadmin only. Closes the doctor's session on a date (today or later) and optionally hands it to a substitute doctor. The doctor must have a schedule on that date. A substitute must be a different, active doctor who practices on that weekday and is not on leave that day. When visits are already registered, a substitute is required (409). Visits are not moved or cancelled; the substitute's session counts them against its quota.",
+                "description": "Superadmin only. Closes the doctor's session on a date (today or later) and optionally hands it to a substitute doctor. The doctor must have a schedule on that date, unless a substitute is given: a substitute can also cover a doctor who has no session that day. A substitute must be a different, active doctor who practices on that weekday and is not on leave that day. When visits are already registered, a substitute is required (409). Visits are not moved or cancelled; the substitute's session counts them against its quota.",
                 "consumes": [
                     "application/json"
                 ],
@@ -7122,6 +7122,45 @@
                 }
             }
         },
+        "apm.SessionBrief": {
+            "type": "object",
+            "properties": {
+                "doctor_id": {
+                    "type": "string",
+                    "example": "9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93"
+                },
+                "end_time": {
+                    "type": "string",
+                    "example": "12:00"
+                },
+                "remaining": {
+                    "type": "integer",
+                    "example": 7
+                },
+                "replaced_doctor_name": {
+                    "description": "ReplacedDoctorName is the doctor this one replaces today (leave or no session); null otherwise.",
+                    "type": "string",
+                    "example": "dr. Maya Putri, Sp.PD"
+                },
+                "start_time": {
+                    "type": "string",
+                    "example": "08:00"
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "active",
+                        "substitute",
+                        "leave"
+                    ],
+                    "example": "active"
+                },
+                "total_quota": {
+                    "type": "integer",
+                    "example": 30
+                }
+            }
+        },
         "apm.Ticket": {
             "type": "object",
             "properties": {
@@ -7636,46 +7675,7 @@
                 }
             }
         },
-        "apm.SessionBrief": {
-            "type": "object",
-            "properties": {
-                "doctor_id": {
-                    "type": "string",
-                    "example": "9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93"
-                },
-                "end_time": {
-                    "type": "string",
-                    "example": "12:00"
-                },
-                "remaining": {
-                    "type": "integer",
-                    "example": 7
-                },
-                "replaced_doctor_name": {
-                    "description": "ReplacedDoctorName is the doctor this one replaces today (leave or no session); null otherwise.",
-                    "type": "string",
-                    "example": "dr. Maya Putri, Sp.PD"
-                },
-                "start_time": {
-                    "type": "string",
-                    "example": "08:00"
-                },
-                "status": {
-                    "type": "string",
-                    "enum": [
-                        "active",
-                        "substitute",
-                        "leave"
-                    ],
-                    "example": "active"
-                },
-                "total_quota": {
-                    "type": "integer",
-                    "example": 30
-                }
-            }
-        },
-        "apm.Ticket": {
+        "cashier.SchemeRequest": {
             "type": "object",
             "required": [
                 "scheme"
