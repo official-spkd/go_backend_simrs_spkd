@@ -1,0 +1,14 @@
+# Deployment of the API only: PostgreSQL and MinIO run outside Docker, on the host.
+#   docker compose up -d --build
+# The container shares the host network, so the localhost addresses in .env (DB_HOST, MINIO_ENDPOINT)
+# work unchanged. This needs Docker on Linux.
+name: simrs
+
+services:
+  simrs-api:
+    build: .
+    image: simrs-api:latest
+    container_name: simrs-api
+    restart: unless-stopped
+    network_mode: host
+    env_file: .env

@@ -92,8 +92,12 @@ func Load() *Config {
 }
 
 func loadStorage() Storage {
-	endpoint := getEnv("MINIO_ENDPOINT", "")
-	useSSL := getEnvBool("MINIO_USE_SSL", false)
+	endpoint, useSSL := splitEndpoint(getEnv("MINIO_ENDPOINT", ""), getEnvBool("MINIO_USE_SSL", false))
+	publicEndpoint, publicSSL := splitEndpoint(getEnv("MINIO_PUBLIC_ENDPOINT", ""), getEnvBool("MINIO_PUBLIC_USE_SSL", useSSL))
+	if publicEndpoint == "" {
+		publicEndpoint, publicSSL = endpoint, useSSL
+	}
+
 	return Storage{
 		Endpoint:       endpoint,
 		AccessKey:      getEnv("MINIO_ACCESS_KEY", ""),
@@ -101,8 +105,22 @@ func loadStorage() Storage {
 		Bucket:         getEnv("MINIO_BUCKET", ""),
 		Region:         getEnv("MINIO_REGION", "us-east-1"),
 		UseSSL:         useSSL,
-		PublicEndpoint: getEnv("MINIO_PUBLIC_ENDPOINT", endpoint),
-		PublicUseSSL:   getEnvBool("MINIO_PUBLIC_USE_SSL", useSSL),
+		PublicEndpoint: publicEndpoint,
+		PublicUseSSL:   publicSSL,
+	}
+}
+
+// splitEndpoint accepts "host:port" as well as "http://host:port" and "https://host:port"; a scheme
+// decides SSL, otherwise the fallback does. The MinIO client itself only takes "host:port".
+func splitEndpoint(raw string, fallbackSSL bool) (string, bool) {
+	raw = strings.TrimRight(strings.TrimSpace(raw), "/")
+	switch {
+	case strings.HasPrefix(raw, "https://"):
+		return strings.TrimPrefix(raw, "https://"), true
+	case strings.HasPrefix(raw, "http://"):
+		return strings.TrimPrefix(raw, "http://"), false
+	default:
+		return raw, fallbackSSL
 	}
 }
 
