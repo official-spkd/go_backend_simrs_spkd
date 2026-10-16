@@ -2,10 +2,10 @@
 #   docker compose up -d --build
 # The container shares the host network, so the localhost addresses in .env (DB_HOST, MINIO_ENDPOINT)
 # work unchanged. This needs Docker on Linux.
-name: simrs-v2
+name: simrs-v2-api
 
 services:
-  simrs-api:
+  simrs-v2-api:
     build: .
     image: simrs-v2-api:latest
     container_name: simrs-v2-api
