@@ -375,6 +375,44 @@ definitions:
           $ref: '#/definitions/examinations.DiagnosisResponse'
         type: array
     type: object
+  examinations.AttachmentSummary:
+    properties:
+      content_type:
+        example: application/pdf
+        type: string
+      created_at:
+        type: string
+      file_name:
+        example: control-notes.pdf
+        type: string
+      id:
+        example: 2c1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93
+        type: string
+      size_bytes:
+        example: 253952
+        type: integer
+    type: object
+  examinations.CloseRequest:
+    properties:
+      discharge_condition:
+        enum:
+        - recovered
+        - improved
+        - unchanged
+        example: improved
+        type: string
+      discharge_method:
+        enum:
+        - home
+        - follow_up
+        - referred
+        - inpatient
+        example: follow_up
+        type: string
+    required:
+    - discharge_condition
+    - discharge_method
+    type: object
   examinations.DiagnosisInput:
     properties:
       icd10_code:
@@ -422,6 +460,17 @@ definitions:
         example: SpO2 below 95%
         type: string
     type: object
+  examinations.HistoryItem:
+    properties:
+      attachments:
+        items:
+          $ref: '#/definitions/examinations.AttachmentSummary'
+        type: array
+      soap_note:
+        $ref: '#/definitions/examinations.SoapResponse'
+      visit:
+        $ref: '#/definitions/examinations.VisitSummary'
+    type: object
   examinations.Objective:
     properties:
       findings:
@@ -434,6 +483,9 @@ definitions:
       age:
         example: 36
         type: integer
+      allergies:
+        example: Penicillin
+        type: string
       birth_date:
         example: "1990-05-17"
         type: string
@@ -452,6 +504,9 @@ definitions:
         type: string
       medical_record_number:
         example: RM-000001
+        type: string
+      nik:
+        example: "3273010101900001"
         type: string
     type: object
   examinations.Prefill:
@@ -598,16 +653,78 @@ definitions:
     type: object
   examinations.VisitSummary:
     properties:
+      allergies:
+        example: Penicillin
+        type: string
+      chief_complaint:
+        example: Fever and cough for three days
+        type: string
+      closed_at:
+        type: string
+      discharge_condition:
+        enum:
+        - recovered
+        - improved
+        - unchanged
+        example: ""
+        type: string
+      discharge_method:
+        enum:
+        - home
+        - follow_up
+        - referred
+        - inpatient
+        example: ""
+        type: string
       doctor:
         example: dr. Andi Wijaya
+        type: string
+      doctor_id:
+        example: 9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93
+        type: string
+      exam_started_at:
         type: string
       id:
         example: 104dd35e-2b3a-4b2a-b38c-8bdd0e1ecc79
         type: string
       patient:
         $ref: '#/definitions/examinations.PatientSummary'
+      penjamin:
+        allOf:
+        - $ref: '#/definitions/models.Penjamin'
+        enum:
+        - umum
+        - bpjs
+        - asuransi
+        example: umum
       poli:
         example: General Clinic
+        type: string
+      poli_call_count:
+        example: 1
+        type: integer
+      poli_called_at:
+        type: string
+      poli_id:
+        example: 6a1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93
+        type: string
+      poli_prefix:
+        example: PD
+        type: string
+      poli_queue_status:
+        allOf:
+        - $ref: '#/definitions/models.PoliQueueStatus'
+        enum:
+        - Waiting
+        - Called
+        - Skipped
+        - Examining
+        - Done
+        example: Examining
+      queue_number:
+        example: "012"
+        type: string
+      registered_at:
         type: string
       visit_date:
         example: "2026-10-15"
@@ -822,6 +939,112 @@ definitions:
         example: 60
         type: number
     type: object
+  examinations.WorklistItem:
+    properties:
+      allergies:
+        example: Penicillin
+        type: string
+      chief_complaint:
+        example: Fever and cough for three days
+        type: string
+      closed_at:
+        type: string
+      discharge_condition:
+        enum:
+        - recovered
+        - improved
+        - unchanged
+        example: ""
+        type: string
+      discharge_method:
+        enum:
+        - home
+        - follow_up
+        - referred
+        - inpatient
+        example: ""
+        type: string
+      doctor:
+        example: dr. Andi Wijaya
+        type: string
+      doctor_id:
+        example: 9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93
+        type: string
+      exam_started_at:
+        type: string
+      has_vital_signs:
+        example: true
+        type: boolean
+      id:
+        example: 104dd35e-2b3a-4b2a-b38c-8bdd0e1ecc79
+        type: string
+      patient:
+        $ref: '#/definitions/examinations.PatientSummary'
+      penjamin:
+        allOf:
+        - $ref: '#/definitions/models.Penjamin'
+        enum:
+        - umum
+        - bpjs
+        - asuransi
+        example: umum
+      poli:
+        example: General Clinic
+        type: string
+      poli_call_count:
+        example: 1
+        type: integer
+      poli_called_at:
+        type: string
+      poli_id:
+        example: 6a1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93
+        type: string
+      poli_prefix:
+        example: PD
+        type: string
+      poli_queue_status:
+        allOf:
+        - $ref: '#/definitions/models.PoliQueueStatus'
+        enum:
+        - Waiting
+        - Called
+        - Skipped
+        - Examining
+        - Done
+        example: Examining
+      queue_number:
+        example: "012"
+        type: string
+      registered_at:
+        type: string
+      soap_status:
+        enum:
+        - ""
+        - draft
+        - final
+        example: draft
+        type: string
+      visit_date:
+        example: "2026-10-15"
+        type: string
+      visit_status:
+        allOf:
+        - $ref: '#/definitions/models.VisitStatus'
+        enum:
+        - Registered
+        - Served
+        - Completed
+        - Paid
+        - Cancelled
+        example: Served
+      visit_type:
+        allOf:
+        - $ref: '#/definitions/models.VisitType'
+        enum:
+        - baru
+        - kontrol
+        example: baru
+    type: object
   files.DownloadResponse:
     properties:
       expires_at:
@@ -944,6 +1167,20 @@ definitions:
     - PenjaminUmum
     - PenjaminBPJS
     - PenjaminAsuransi
+  models.PoliQueueStatus:
+    enum:
+    - Waiting
+    - Called
+    - Skipped
+    - Examining
+    - Done
+    type: string
+    x-enum-varnames:
+    - PoliQueueWaiting
+    - PoliQueueCalled
+    - PoliQueueSkipped
+    - PoliQueueExamining
+    - PoliQueueDone
   models.QueueStatus:
     enum:
     - Waiting
@@ -2809,6 +3046,80 @@ paths:
       summary: Update a doctor
       tags:
       - doctors
+  /api/v1/examinations:
+    get:
+      description: Doctor only. The signed-in doctor's visits of one date (default
+        today) in poli queue order, cancelled visits excluded. Each row tells whether
+        vital signs exist and the SOAP note status.
+      parameters:
+      - description: Visit date (YYYY-MM-DD), default today
+        in: query
+        name: date
+        type: string
+      - description: Search by patient name or medical record number
+        in: query
+        name: search
+        type: string
+      - description: Visit status
+        enum:
+        - Registered
+        - Served
+        - Completed
+        - Paid
+        in: query
+        name: visit_status
+        type: string
+      - description: Poli queue status
+        enum:
+        - Waiting
+        - Called
+        - Skipped
+        - Examining
+        - Done
+        in: query
+        name: poli_queue_status
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page (max 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.PaginatedResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/examinations.WorklistItem'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Doctor worklist
+      tags:
+      - examinations
   /api/v1/examinations/{visit_id}:
     get:
       description: Doctor only, and only for visits assigned to the signed-in doctor.
@@ -2851,6 +3162,266 @@ paths:
       security:
       - BearerAuth: []
       summary: Get a visit's examination
+      tags:
+      - examinations
+  /api/v1/examinations/{visit_id}/call:
+    post:
+      description: Doctor only (own visits, today only). Calls a patient who is waiting,
+        already called or skipped; the examination must not have started. Sets poli_queue_status
+        to Called, records the call time and counts the call.
+      parameters:
+      - description: Visit ID
+        in: path
+        name: visit_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/examinations.VisitSummary'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Call the patient
+      tags:
+      - examinations
+  /api/v1/examinations/{visit_id}/close:
+    post:
+      consumes:
+      - application/json
+      description: Doctor only (own visits). Needs a started examination and a finalized
+        SOAP note (409 otherwise); discharge_method follow_up also needs a control_date
+        in the note. Moves the visit to Completed and poli_queue_status to Done, and
+        records the discharge condition and method.
+      parameters:
+      - description: Visit ID
+        in: path
+        name: visit_id
+        required: true
+        type: string
+      - description: Discharge
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/examinations.CloseRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/examinations.VisitSummary'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Close the visit
+      tags:
+      - examinations
+  /api/v1/examinations/{visit_id}/history:
+    get:
+      description: Doctor only, opened from one of the doctor's own visits. Lists
+        the patient's other visits (any poli and doctor, cancelled ones excluded),
+        newest first. The SOAP note is included only once finalized; attachments are
+        listed by name (downloads stay limited to the visit's own doctor).
+      parameters:
+      - description: Visit ID
+        in: path
+        name: visit_id
+        required: true
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page (max 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.PaginatedResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/examinations.HistoryItem'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Patient visit history
+      tags:
+      - examinations
+  /api/v1/examinations/{visit_id}/recall:
+    post:
+      description: Doctor only (own visits, today only). Repeats the call of a patient
+        whose poli_queue_status is Called.
+      parameters:
+      - description: Visit ID
+        in: path
+        name: visit_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/examinations.VisitSummary'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Call the patient again
+      tags:
+      - examinations
+  /api/v1/examinations/{visit_id}/skip:
+    post:
+      description: Doctor only (own visits, today only). Marks a waiting or called
+        patient as Skipped; they can be called again later.
+      parameters:
+      - description: Visit ID
+        in: path
+        name: visit_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/examinations.VisitSummary'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Skip the patient
       tags:
       - examinations
   /api/v1/examinations/{visit_id}/soap-note:
@@ -2902,10 +3473,10 @@ paths:
       - application/json
       description: 'Doctor only (own visits). Creates the draft on the first call
         (version 0) and replaces it afterwards (send the current version, otherwise
-        409). The first save moves the visit from Registered to Served. Diagnoses
-        are ICD-10 codes (format only; no code list is checked yet): one primary,
-        up to 10 secondary. control_date only goes with outpatient_followup, referral_notes
-        only with refer_inpatient or refer_icu. Not allowed once final.'
+        409). Needs a started examination (POST /start). Diagnoses are ICD-10 codes
+        (format only; no code list is checked yet): one primary, up to 10 secondary.
+        control_date only goes with outpatient_followup, referral_notes only with
+        refer_inpatient or refer_icu. Not allowed once final.'
       parameters:
       - description: Visit ID
         in: path
@@ -3014,9 +3585,10 @@ paths:
     post:
       description: Doctor only (own visits). Needs the vital signs, subjective, plan,
         a primary diagnosis and a follow-up (plus control_date or referral_notes where
-        they apply), otherwise 422 with the missing fields. Freezes the vital signs
-        shown in the objective part, locks the note and the vital signs, and moves
-        the visit to Completed. Corrections afterwards go through addenda.
+        they apply), otherwise 422 with the missing fields. Needs a started examination.
+        Freezes the vital signs shown in the objective part and locks the note and
+        the vital signs; the visit stays Served until it is closed (POST /close).
+        Corrections afterwards go through addenda.
       parameters:
       - description: Visit ID
         in: path
@@ -3062,6 +3634,54 @@ paths:
       security:
       - BearerAuth: []
       summary: Finalize the SOAP note
+      tags:
+      - examinations
+  /api/v1/examinations/{visit_id}/start:
+    post:
+      description: Doctor only (own visits, today only). Moves the visit from Registered
+        to Served and poli_queue_status to Examining. The SOAP note can only be written
+        after this.
+      parameters:
+      - description: Visit ID
+        in: path
+        name: visit_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/examinations.VisitSummary'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Start the examination
       tags:
       - examinations
   /api/v1/examinations/{visit_id}/vital-signs:

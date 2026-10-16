@@ -1430,6 +1430,117 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/examinations": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Doctor only. The signed-in doctor's visits of one date (default today) in poli queue order, cancelled visits excluded. Each row tells whether vital signs exist and the SOAP note status.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "examinations"
+                ],
+                "summary": "Doctor worklist",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Visit date (YYYY-MM-DD), default today",
+                        "name": "date",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search by patient name or medical record number",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "Registered",
+                            "Served",
+                            "Completed",
+                            "Paid"
+                        ],
+                        "type": "string",
+                        "description": "Visit status",
+                        "name": "visit_status",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "Waiting",
+                            "Called",
+                            "Skipped",
+                            "Examining",
+                            "Done"
+                        ],
+                        "type": "string",
+                        "description": "Poli queue status",
+                        "name": "poli_queue_status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Items per page (max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.PaginatedResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/examinations.WorklistItem"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/examinations/{visit_id}": {
             "get": {
                 "security": [
@@ -1493,6 +1604,415 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/examinations/{visit_id}/call": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Doctor only (own visits, today only). Calls a patient who is waiting, already called or skipped; the examination must not have started. Sets poli_queue_status to Called, records the call time and counts the call.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "examinations"
+                ],
+                "summary": "Call the patient",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Visit ID",
+                        "name": "visit_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/examinations.VisitSummary"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/examinations/{visit_id}/close": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Doctor only (own visits). Needs a started examination and a finalized SOAP note (409 otherwise); discharge_method follow_up also needs a control_date in the note. Moves the visit to Completed and poli_queue_status to Done, and records the discharge condition and method.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "examinations"
+                ],
+                "summary": "Close the visit",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Visit ID",
+                        "name": "visit_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Discharge",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/examinations.CloseRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/examinations.VisitSummary"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/examinations/{visit_id}/history": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Doctor only, opened from one of the doctor's own visits. Lists the patient's other visits (any poli and doctor, cancelled ones excluded), newest first. The SOAP note is included only once finalized; attachments are listed by name (downloads stay limited to the visit's own doctor).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "examinations"
+                ],
+                "summary": "Patient visit history",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Visit ID",
+                        "name": "visit_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Items per page (max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.PaginatedResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/examinations.HistoryItem"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/examinations/{visit_id}/recall": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Doctor only (own visits, today only). Repeats the call of a patient whose poli_queue_status is Called.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "examinations"
+                ],
+                "summary": "Call the patient again",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Visit ID",
+                        "name": "visit_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/examinations.VisitSummary"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/examinations/{visit_id}/skip": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Doctor only (own visits, today only). Marks a waiting or called patient as Skipped; they can be called again later.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "examinations"
+                ],
+                "summary": "Skip the patient",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Visit ID",
+                        "name": "visit_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/examinations.VisitSummary"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
                         "schema": {
                             "$ref": "#/definitions/utils.ErrorResponse"
                         }
@@ -1575,7 +2095,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Doctor only (own visits). Creates the draft on the first call (version 0) and replaces it afterwards (send the current version, otherwise 409). The first save moves the visit from Registered to Served. Diagnoses are ICD-10 codes (format only; no code list is checked yet): one primary, up to 10 secondary. control_date only goes with outpatient_followup, referral_notes only with refer_inpatient or refer_icu. Not allowed once final.",
+                "description": "Doctor only (own visits). Creates the draft on the first call (version 0) and replaces it afterwards (send the current version, otherwise 409). Needs a started examination (POST /start). Diagnoses are ICD-10 codes (format only; no code list is checked yet): one primary, up to 10 secondary. control_date only goes with outpatient_followup, referral_notes only with refer_inpatient or refer_icu. Not allowed once final.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1751,7 +2271,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Doctor only (own visits). Needs the vital signs, subjective, plan, a primary diagnosis and a follow-up (plus control_date or referral_notes where they apply), otherwise 422 with the missing fields. Freezes the vital signs shown in the objective part, locks the note and the vital signs, and moves the visit to Completed. Corrections afterwards go through addenda.",
+                "description": "Doctor only (own visits). Needs the vital signs, subjective, plan, a primary diagnosis and a follow-up (plus control_date or referral_notes where they apply), otherwise 422 with the missing fields. Needs a started examination. Freezes the vital signs shown in the objective part and locks the note and the vital signs; the visit stays Served until it is closed (POST /close). Corrections afterwards go through addenda.",
                 "produces": [
                     "application/json"
                 ],
@@ -1819,6 +2339,82 @@ const docTemplate = `{
                     },
                     "422": {
                         "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/examinations/{visit_id}/start": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Doctor only (own visits, today only). Moves the visit from Registered to Served and poli_queue_status to Examining. The SOAP note can only be written after this.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "examinations"
+                ],
+                "summary": "Start the examination",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Visit ID",
+                        "name": "visit_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/examinations.VisitSummary"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
                         "schema": {
                             "$ref": "#/definitions/utils.ErrorResponse"
                         }
@@ -5079,6 +5675,58 @@ const docTemplate = `{
                 }
             }
         },
+        "examinations.AttachmentSummary": {
+            "type": "object",
+            "properties": {
+                "content_type": {
+                    "type": "string",
+                    "example": "application/pdf"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "file_name": {
+                    "type": "string",
+                    "example": "control-notes.pdf"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "2c1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93"
+                },
+                "size_bytes": {
+                    "type": "integer",
+                    "example": 253952
+                }
+            }
+        },
+        "examinations.CloseRequest": {
+            "type": "object",
+            "required": [
+                "discharge_condition",
+                "discharge_method"
+            ],
+            "properties": {
+                "discharge_condition": {
+                    "type": "string",
+                    "enum": [
+                        "recovered",
+                        "improved",
+                        "unchanged"
+                    ],
+                    "example": "improved"
+                },
+                "discharge_method": {
+                    "type": "string",
+                    "enum": [
+                        "home",
+                        "follow_up",
+                        "referred",
+                        "inpatient"
+                    ],
+                    "example": "follow_up"
+                }
+            }
+        },
         "examinations.DiagnosisInput": {
             "type": "object",
             "required": [
@@ -5147,6 +5795,23 @@ const docTemplate = `{
                 }
             }
         },
+        "examinations.HistoryItem": {
+            "type": "object",
+            "properties": {
+                "attachments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/examinations.AttachmentSummary"
+                    }
+                },
+                "soap_note": {
+                    "$ref": "#/definitions/examinations.SoapResponse"
+                },
+                "visit": {
+                    "$ref": "#/definitions/examinations.VisitSummary"
+                }
+            }
+        },
         "examinations.Objective": {
             "type": "object",
             "properties": {
@@ -5164,6 +5829,10 @@ const docTemplate = `{
                 "age": {
                     "type": "integer",
                     "example": 36
+                },
+                "allergies": {
+                    "type": "string",
+                    "example": "Penicillin"
                 },
                 "birth_date": {
                     "type": "string",
@@ -5192,6 +5861,10 @@ const docTemplate = `{
                 "medical_record_number": {
                     "type": "string",
                     "example": "RM-000001"
+                },
+                "nik": {
+                    "type": "string",
+                    "example": "3273010101900001"
                 }
             }
         },
@@ -5395,9 +6068,46 @@ const docTemplate = `{
         "examinations.VisitSummary": {
             "type": "object",
             "properties": {
+                "allergies": {
+                    "type": "string",
+                    "example": "Penicillin"
+                },
+                "chief_complaint": {
+                    "type": "string",
+                    "example": "Fever and cough for three days"
+                },
+                "closed_at": {
+                    "type": "string"
+                },
+                "discharge_condition": {
+                    "type": "string",
+                    "enum": [
+                        "recovered",
+                        "improved",
+                        "unchanged"
+                    ],
+                    "example": ""
+                },
+                "discharge_method": {
+                    "type": "string",
+                    "enum": [
+                        "home",
+                        "follow_up",
+                        "referred",
+                        "inpatient"
+                    ],
+                    "example": ""
+                },
                 "doctor": {
                     "type": "string",
                     "example": "dr. Andi Wijaya"
+                },
+                "doctor_id": {
+                    "type": "string",
+                    "example": "9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93"
+                },
+                "exam_started_at": {
+                    "type": "string"
                 },
                 "id": {
                     "type": "string",
@@ -5406,9 +6116,59 @@ const docTemplate = `{
                 "patient": {
                     "$ref": "#/definitions/examinations.PatientSummary"
                 },
+                "penjamin": {
+                    "enum": [
+                        "umum",
+                        "bpjs",
+                        "asuransi"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.Penjamin"
+                        }
+                    ],
+                    "example": "umum"
+                },
                 "poli": {
                     "type": "string",
                     "example": "General Clinic"
+                },
+                "poli_call_count": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "poli_called_at": {
+                    "type": "string"
+                },
+                "poli_id": {
+                    "type": "string",
+                    "example": "6a1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93"
+                },
+                "poli_prefix": {
+                    "type": "string",
+                    "example": "PD"
+                },
+                "poli_queue_status": {
+                    "enum": [
+                        "Waiting",
+                        "Called",
+                        "Skipped",
+                        "Examining",
+                        "Done"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.PoliQueueStatus"
+                        }
+                    ],
+                    "example": "Examining"
+                },
+                "queue_number": {
+                    "type": "string",
+                    "example": "012"
+                },
+                "registered_at": {
+                    "type": "string"
                 },
                 "visit_date": {
                     "type": "string",
@@ -5682,6 +6442,157 @@ const docTemplate = `{
                 }
             }
         },
+        "examinations.WorklistItem": {
+            "type": "object",
+            "properties": {
+                "allergies": {
+                    "type": "string",
+                    "example": "Penicillin"
+                },
+                "chief_complaint": {
+                    "type": "string",
+                    "example": "Fever and cough for three days"
+                },
+                "closed_at": {
+                    "type": "string"
+                },
+                "discharge_condition": {
+                    "type": "string",
+                    "enum": [
+                        "recovered",
+                        "improved",
+                        "unchanged"
+                    ],
+                    "example": ""
+                },
+                "discharge_method": {
+                    "type": "string",
+                    "enum": [
+                        "home",
+                        "follow_up",
+                        "referred",
+                        "inpatient"
+                    ],
+                    "example": ""
+                },
+                "doctor": {
+                    "type": "string",
+                    "example": "dr. Andi Wijaya"
+                },
+                "doctor_id": {
+                    "type": "string",
+                    "example": "9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93"
+                },
+                "exam_started_at": {
+                    "type": "string"
+                },
+                "has_vital_signs": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "id": {
+                    "type": "string",
+                    "example": "104dd35e-2b3a-4b2a-b38c-8bdd0e1ecc79"
+                },
+                "patient": {
+                    "$ref": "#/definitions/examinations.PatientSummary"
+                },
+                "penjamin": {
+                    "enum": [
+                        "umum",
+                        "bpjs",
+                        "asuransi"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.Penjamin"
+                        }
+                    ],
+                    "example": "umum"
+                },
+                "poli": {
+                    "type": "string",
+                    "example": "General Clinic"
+                },
+                "poli_call_count": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "poli_called_at": {
+                    "type": "string"
+                },
+                "poli_id": {
+                    "type": "string",
+                    "example": "6a1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93"
+                },
+                "poli_prefix": {
+                    "type": "string",
+                    "example": "PD"
+                },
+                "poli_queue_status": {
+                    "enum": [
+                        "Waiting",
+                        "Called",
+                        "Skipped",
+                        "Examining",
+                        "Done"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.PoliQueueStatus"
+                        }
+                    ],
+                    "example": "Examining"
+                },
+                "queue_number": {
+                    "type": "string",
+                    "example": "012"
+                },
+                "registered_at": {
+                    "type": "string"
+                },
+                "soap_status": {
+                    "type": "string",
+                    "enum": [
+                        "",
+                        "draft",
+                        "final"
+                    ],
+                    "example": "draft"
+                },
+                "visit_date": {
+                    "type": "string",
+                    "example": "2026-10-15"
+                },
+                "visit_status": {
+                    "enum": [
+                        "Registered",
+                        "Served",
+                        "Completed",
+                        "Paid",
+                        "Cancelled"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.VisitStatus"
+                        }
+                    ],
+                    "example": "Served"
+                },
+                "visit_type": {
+                    "enum": [
+                        "baru",
+                        "kontrol"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.VisitType"
+                        }
+                    ],
+                    "example": "baru"
+                }
+            }
+        },
         "files.DownloadResponse": {
             "type": "object",
             "properties": {
@@ -5848,6 +6759,23 @@ const docTemplate = `{
                 "PenjaminUmum",
                 "PenjaminBPJS",
                 "PenjaminAsuransi"
+            ]
+        },
+        "models.PoliQueueStatus": {
+            "type": "string",
+            "enum": [
+                "Waiting",
+                "Called",
+                "Skipped",
+                "Examining",
+                "Done"
+            ],
+            "x-enum-varnames": [
+                "PoliQueueWaiting",
+                "PoliQueueCalled",
+                "PoliQueueSkipped",
+                "PoliQueueExamining",
+                "PoliQueueDone"
             ]
         },
         "models.QueueStatus": {

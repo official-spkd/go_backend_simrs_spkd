@@ -38,7 +38,7 @@ func (h *Handler) GetSoap(c *gin.Context) {
 }
 
 // @Summary		Save the SOAP note draft
-// @Description	Doctor only (own visits). Creates the draft on the first call (version 0) and replaces it afterwards (send the current version, otherwise 409). The first save moves the visit from Registered to Served. Diagnoses are ICD-10 codes (format only; no code list is checked yet): one primary, up to 10 secondary. control_date only goes with outpatient_followup, referral_notes only with refer_inpatient or refer_icu. Not allowed once final.
+// @Description	Doctor only (own visits). Creates the draft on the first call (version 0) and replaces it afterwards (send the current version, otherwise 409). Needs a started examination (POST /start). Diagnoses are ICD-10 codes (format only; no code list is checked yet): one primary, up to 10 secondary. control_date only goes with outpatient_followup, referral_notes only with refer_inpatient or refer_icu. Not allowed once final.
 // @Tags			examinations
 // @Accept			json
 // @Produce		json
@@ -70,7 +70,7 @@ func (h *Handler) SaveSoap(c *gin.Context) {
 }
 
 // @Summary		Finalize the SOAP note
-// @Description	Doctor only (own visits). Needs the vital signs, subjective, plan, a primary diagnosis and a follow-up (plus control_date or referral_notes where they apply), otherwise 422 with the missing fields. Freezes the vital signs shown in the objective part, locks the note and the vital signs, and moves the visit to Completed. Corrections afterwards go through addenda.
+// @Description	Doctor only (own visits). Needs the vital signs, subjective, plan, a primary diagnosis and a follow-up (plus control_date or referral_notes where they apply), otherwise 422 with the missing fields. Needs a started examination. Freezes the vital signs shown in the objective part and locks the note and the vital signs; the visit stays Served until it is closed (POST /close). Corrections afterwards go through addenda.
 // @Tags			examinations
 // @Produce		json
 // @Security		BearerAuth

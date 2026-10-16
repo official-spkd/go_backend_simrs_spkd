@@ -18,6 +18,13 @@ var (
 	ErrNotYourVisit    = errors.New("this visit belongs to another doctor")
 	ErrVisitCancelled  = errors.New("the visit is cancelled")
 	ErrVisitNotToday   = errors.New("the visit is scheduled for a later date")
+	ErrQueueNotToday   = errors.New("only today's visits can be called or examined")
+	ErrCannotCall      = errors.New("the patient can only be called before the examination starts")
+	ErrNotCalled       = errors.New("the patient has not been called")
+	ErrExamStarted     = errors.New("the examination has already started")
+	ErrExamNotStarted  = errors.New("the examination has not been started")
+	ErrVisitClosed     = errors.New("the visit is already closed")
+	ErrSoapNotFinal    = errors.New("the soap note must be finalized before the visit can be closed")
 )
 
 // InputError is a request that is well-formed but breaks a business rule (maps to 400).
@@ -63,6 +70,17 @@ type Service interface {
 	FinalizeSoap(ctx context.Context, visitID uuid.UUID, actor *utils.TokenClaims) (*SoapView, error)
 	AddAddendum(ctx context.Context, visitID uuid.UUID, req AddendumRequest, actor *utils.TokenClaims) (*SoapView, error)
 
+	// Worklist lists the signed-in doctor's visits of one date, in poli queue order.
+	Worklist(ctx context.Context, q WorklistQuery, actor *utils.TokenClaims) ([]WorklistEntry, int64, error)
+	Call(ctx context.Context, visitID uuid.UUID, actor *utils.TokenClaims) (*models.Visit, error)
+	Recall(ctx context.Context, visitID uuid.UUID, actor *utils.TokenClaims) (*models.Visit, error)
+	Skip(ctx context.Context, visitID uuid.UUID, actor *utils.TokenClaims) (*models.Visit, error)
+	StartExam(ctx context.Context, visitID uuid.UUID, actor *utils.TokenClaims) (*models.Visit, error)
+	Close(ctx context.Context, visitID uuid.UUID, req CloseRequest, actor *utils.TokenClaims) (*models.Visit, error)
+
+	// History lists the patient's earlier and later visits (any doctor), with final notes only.
+	History(ctx context.Context, visitID uuid.UUID, page, limit int, actor *utils.TokenClaims) ([]HistoryEntry, int64, error)
+
 	// AuthorizeAttachment checks that the doctor may read (write false) or change (write true) the
 	// files attached to the visit's SOAP note. It returns *utils.AccessError to refuse.
 	AuthorizeAttachment(ctx context.Context, visitID uuid.UUID, actor *utils.TokenClaims, write bool) error
@@ -104,17 +122,14 @@ func (s *service) authorize(ctx context.Context, visitID uuid.UUID, actor *utils
 		return nil, err
 	}
 
-	user, err := s.users.Get(ctx, actor.UserID)
-	if errors.Is(err, models.ErrUserNotFound) || (err == nil && user.DoctorID == nil) {
-		return nil, ErrDoctorNotLinked
-	}
+	doctorID, err := s.linkedDoctor(ctx, actor)
 	if err != nil {
 		return nil, err
 	}
 	if visit.DoctorID == nil {
 		return nil, ErrNoDoctor
 	}
-	if *visit.DoctorID != *user.DoctorID {
+	if *visit.DoctorID != doctorID {
 		return nil, ErrNotYourVisit
 	}
 
@@ -127,6 +142,18 @@ func (s *service) authorize(ctx context.Context, visitID uuid.UUID, actor *utils
 		}
 	}
 	return visit, nil
+}
+
+// linkedDoctor returns the doctor record the signed-in account belongs to.
+func (s *service) linkedDoctor(ctx context.Context, actor *utils.TokenClaims) (uuid.UUID, error) {
+	user, err := s.users.Get(ctx, actor.UserID)
+	if errors.Is(err, models.ErrUserNotFound) || (err == nil && user.DoctorID == nil) {
+		return uuid.Nil, ErrDoctorNotLinked
+	}
+	if err != nil {
+		return uuid.Nil, err
+	}
+	return *user.DoctorID, nil
 }
 
 // ensureNotFinalized rejects changes to a visit whose SOAP note is already final.
