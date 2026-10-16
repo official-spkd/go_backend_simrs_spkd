@@ -26,6 +26,9 @@ func (s *service) SaveSoap(ctx context.Context, visitID uuid.UUID, req SoapReque
 	if err != nil {
 		return nil, err
 	}
+	if err := ensureExamining(visit); err != nil {
+		return nil, err
+	}
 	n, err := buildNote(req)
 	if err != nil {
 		return nil, err
@@ -58,7 +61,11 @@ func (s *service) SaveSoap(ctx context.Context, visitID uuid.UUID, req SoapReque
 }
 
 func (s *service) FinalizeSoap(ctx context.Context, visitID uuid.UUID, actor *utils.TokenClaims) (*SoapView, error) {
-	if _, err := s.authorize(ctx, visitID, actor, true); err != nil {
+	visit, err := s.authorize(ctx, visitID, actor, true)
+	if err != nil {
+		return nil, err
+	}
+	if err := ensureExamining(visit); err != nil {
 		return nil, err
 	}
 	note, err := s.repo.FindSoap(ctx, visitID)
