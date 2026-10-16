@@ -25,4 +25,4 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --start-period=15s --retries=3 \
     CMD wget -qO- "http://127.0.0.1:${APP_PORT:-8080}/ping" >/dev/null || exit 1
 
-ENTRYPOINT ["simrs-api"]
+ENTRYPOINT ["simrs-v2-api"]
