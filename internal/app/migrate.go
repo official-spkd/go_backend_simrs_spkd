@@ -14,7 +14,7 @@ func migrate(db *gorm.DB) error {
 	if err := db.Exec("CREATE SEQUENCE IF NOT EXISTS patient_medical_record_number_seq").Error; err != nil {
 		return fmt.Errorf("create sequence: %w", err)
 	}
-	if err := db.AutoMigrate(&models.Role{}, &models.Poli{}, &models.Doctor{}, &models.User{}, &models.Patient{}, &models.Visit{}, &models.Counter{}, &models.Queue{},
+	if err := db.AutoMigrate(&models.Role{}, &models.Poli{}, &models.Doctor{}, &models.DoctorSchedule{}, &models.ScheduleException{}, &models.User{}, &models.Patient{}, &models.Visit{}, &models.Counter{}, &models.Queue{},
 		&models.VitalAssessment{}, &models.VitalVersion{}, &models.SoapNote{}, &models.SoapDiagnosis{}, &models.SoapAddendum{}, &models.File{}); err != nil {
 		return fmt.Errorf("migrate: %w", err)
 	}
