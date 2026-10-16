@@ -17,7 +17,7 @@ go build ./...        # compile
 go vet ./...          # static checks
 gofmt -l .            # must print nothing
 go mod tidy           # after adding or removing a dependency
-docker compose up -d --build   # deploy the API as a container (PostgreSQL and MinIO run outside Docker)
+docker compose up -d --build   # deploy: API + PostgreSQL + MinIO (Chainguard image)
 ```
 
 No test suite exists yet. When you add tests, use the standard `testing` package next to the code (`*_test.go`) and run `go test ./...`.

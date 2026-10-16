@@ -1,7 +1,9 @@
-# Deployment of the API only: PostgreSQL and MinIO run outside Docker, on the host.
+# Deployment: the API with its own PostgreSQL and MinIO.
+#   cp .env.example .env     # fill in JWT_SECRET, DB_USER, DB_PASSWORD, MINIO_ACCESS_KEY, MINIO_SECRET_KEY
 #   docker compose up -d --build
-# The container shares the host network, so the localhost addresses in .env (DB_HOST, MINIO_ENDPOINT)
-# work unchanged. This needs Docker on Linux.
+# Inside Compose the API reaches the others by service name (postgres, minio), so DB_HOST and
+# MINIO_ENDPOINT from .env are overridden below. MINIO_PUBLIC_ENDPOINT must be an address browsers
+# can open, because file uploads and downloads go straight from the browser to MinIO.
 name: simrs-v2-api
 
 services:
@@ -10,5 +12,65 @@ services:
     image: simrs-v2-api:latest
     container_name: simrs-v2-api
     restart: unless-stopped
-    network_mode: host
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started # the API retries on restart until MinIO answers
+    ports:
+      - "${APP_PORT:-8080}:${APP_PORT:-8080}"
     env_file: .env
+    environment:
+      APP_HOST: 0.0.0.0
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_SSLMODE: disable
+      MINIO_ENDPOINT: minio:9000
+      MINIO_USE_SSL: "false"
+      MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-localhost:9000}
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:?set DB_USER in .env}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+      POSTGRES_DB: ${DB_NAME:-simrs}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # No published port: only the API reaches the database. Add "127.0.0.1:5433:5432" to inspect it
+    # from the host.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # The Chainguard image runs as user 65532 and has no shell, so this one-off container gives that
+  # user the data volume before MinIO starts.
+  minio-init:
+    image: alpine:3.20
+    command: ["chown", "-R", "65532:65532", "/data"]
+    volumes:
+      - miniodata:/data
+    restart: "no"
+
+  minio:
+    image: cgr.dev/chainguard/minio:latest
+    restart: unless-stopped
+    depends_on:
+      minio-init:
+        condition: service_completed_successfully
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:?set MINIO_ACCESS_KEY in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:?set MINIO_SECRET_KEY in .env (at least 8 characters)}
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - miniodata:/data
+
+volumes:
+  pgdata:
+  miniodata:
