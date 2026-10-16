@@ -9,6 +9,8 @@ const (
 	FrontOffice = "front_office"
 	IT          = "it"
 	Pharmacist  = "pharmacist"
+	Cashier     = "cashier"
+	Management  = "management"
 )
 
 func Defaults() []models.Role {
@@ -18,5 +20,7 @@ func Defaults() []models.Role {
 		{Name: FrontOffice, DisplayName: "Front Office", Description: "Registration and reception staff", IsSystem: true},
 		{Name: IT, DisplayName: "IT", Description: "IT support staff", IsSystem: true},
 		{Name: Pharmacist, DisplayName: "Pharmacist", Description: "Pharmacy staff", IsSystem: true},
+		{Name: Cashier, DisplayName: "Cashier", Description: "Outpatient billing and payment staff", IsSystem: true},
+		{Name: Management, DisplayName: "Management", Description: "Hospital management; reads reports", IsSystem: true},
 	}
 }

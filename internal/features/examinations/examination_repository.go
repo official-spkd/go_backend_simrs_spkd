@@ -3,6 +3,7 @@ package examinations
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -19,7 +20,26 @@ var (
 	ErrVersionConflict = errors.New("the record was changed by someone else; reload and try again")
 	ErrFinalized       = errors.New("the soap note is finalized and can no longer be changed")
 	ErrNotFinalized    = errors.New("addenda can only be added to a finalized soap note")
+	ErrStateChanged    = errors.New("the visit was changed by someone else; reload and try again")
 )
+
+// FlowGuard is the state a visit must still be in for a status change to apply.
+type FlowGuard struct {
+	VisitStatus models.VisitStatus
+	PoliQueue   []models.PoliQueueStatus // empty means any
+}
+
+// FlowChange is what a status change writes. CountCall also adds one to poli_call_count.
+type FlowChange struct {
+	Set       map[string]any
+	CountCall bool
+}
+
+// Records tells, per visit, whether vital signs exist and the status of its SOAP note ("" if none).
+type Records struct {
+	HasVitals  map[uuid.UUID]bool
+	SoapStatus map[uuid.UUID]string
+}
 
 type Repository interface {
 	FindVital(ctx context.Context, visitID uuid.UUID) (*models.VitalAssessment, error)
@@ -31,11 +51,21 @@ type Repository interface {
 	FindVitalVersion(ctx context.Context, vitalID uuid.UUID, version int) (*models.VitalVersion, error)
 
 	FindSoap(ctx context.Context, visitID uuid.UUID) (*models.SoapNote, error)
-	// SaveSoap saves a draft with its diagnoses and moves a registered visit to Served.
+	// SaveSoap saves a draft with its diagnoses.
 	SaveSoap(ctx context.Context, n *models.SoapNote, expectedVersion *int) error
-	// FinalizeSoap locks the note and moves the visit to Completed.
+	// FinalizeSoap locks the note.
 	FinalizeSoap(ctx context.Context, noteID uuid.UUID, snapshot string, userID uuid.UUID) error
 	AddAddendum(ctx context.Context, a *models.SoapAddendum) error
+
+	ListWorklist(ctx context.Context, q WorklistQuery) ([]models.Visit, int64, error)
+	FindRecords(ctx context.Context, visitIDs []uuid.UUID) (Records, error)
+	// UpdateVisitFlow applies changes only while the visit still matches guard, else ErrStateChanged.
+	UpdateVisitFlow(ctx context.Context, visitID uuid.UUID, guard FlowGuard, change FlowChange) error
+
+	// ListHistory lists the patient's other visits that were not cancelled, newest first.
+	ListHistory(ctx context.Context, patientID, excludeVisitID uuid.UUID, page, limit int) ([]models.Visit, int64, error)
+	FindFinalNotes(ctx context.Context, visitIDs []uuid.UUID) (map[uuid.UUID]*models.SoapNote, error)
+	FindAttachments(ctx context.Context, visitIDs []uuid.UUID) (map[uuid.UUID][]models.File, error)
 }
 
 type repository struct {
@@ -163,14 +193,9 @@ func (r *repository) SaveSoap(ctx context.Context, n *models.SoapNote, expectedV
 			n.Diagnoses[i].SortOrder = i
 		}
 		if len(n.Diagnoses) > 0 {
-			if err := tx.Create(&n.Diagnoses).Error; err != nil {
-				return err
-			}
+			return tx.Create(&n.Diagnoses).Error
 		}
-
-		return tx.Model(&models.Visit{}).
-			Where("id = ? AND visit_status = ?", n.VisitID, models.VisitRegistered).
-			Update("visit_status", models.VisitServed).Error
+		return nil
 	})
 }
 
@@ -188,21 +213,13 @@ func (r *repository) FinalizeSoap(ctx context.Context, noteID uuid.UUID, snapsho
 			return ErrFinalized
 		}
 
-		now := time.Now()
-		err = tx.Model(&models.SoapNote{}).Where("id = ?", noteID).Updates(map[string]any{
+		return tx.Model(&models.SoapNote{}).Where("id = ?", noteID).Updates(map[string]any{
 			"status":                    models.SoapFinal,
 			"objective_vitals_snapshot": snapshot,
-			"finalized_at":              now,
+			"finalized_at":              time.Now(),
 			"finalized_by_user_id":      userID,
 			"version":                   n.Version + 1,
 		}).Error
-		if err != nil {
-			return err
-		}
-
-		return tx.Model(&models.Visit{}).
-			Where("id = ? AND visit_status IN ?", n.VisitID, []models.VisitStatus{models.VisitRegistered, models.VisitServed}).
-			Update("visit_status", models.VisitCompleted).Error
 	})
 }
 
@@ -221,4 +238,152 @@ func (r *repository) AddAddendum(ctx context.Context, a *models.SoapAddendum) er
 		}
 		return tx.Create(a).Error
 	})
+}
+
+func (r *repository) ListWorklist(ctx context.Context, q WorklistQuery) ([]models.Visit, int64, error) {
+	tx := r.db.WithContext(ctx).Model(&models.Visit{}).
+		Where("doctor_id = ? AND visit_date = ? AND visit_status <> ?", q.DoctorID, q.Date, models.VisitCancelled)
+
+	if q.Search != "" {
+		like := "%" + escapeLike(strings.ToLower(q.Search)) + "%"
+		// Subquery on the table name skips the soft-delete filter, so visits of deleted patients stay searchable.
+		patients := r.db.Table("patients").Select("id").
+			Where("LOWER(full_name) LIKE ? OR LOWER(medical_record_number) LIKE ?", like, like)
+		tx = tx.Where("patient_id IN (?)", patients)
+	}
+	if q.VisitStatus != "" {
+		tx = tx.Where("visit_status = ?", q.VisitStatus)
+	}
+	if q.PoliQueueStatus != "" {
+		tx = tx.Where("poli_queue_status = ?", q.PoliQueueStatus)
+	}
+
+	var total int64
+	if err := tx.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	var out []models.Visit
+	err := withVisitDetails(tx).
+		Order("queue_sequence").
+		Limit(q.Limit).Offset((q.Page - 1) * q.Limit).
+		Find(&out).Error
+	if err != nil {
+		return nil, 0, err
+	}
+	return out, total, nil
+}
+
+func (r *repository) FindRecords(ctx context.Context, visitIDs []uuid.UUID) (Records, error) {
+	out := Records{HasVitals: map[uuid.UUID]bool{}, SoapStatus: map[uuid.UUID]string{}}
+	if len(visitIDs) == 0 {
+		return out, nil
+	}
+
+	var withVitals []uuid.UUID
+	if err := r.db.WithContext(ctx).Model(&models.VitalAssessment{}).
+		Where("visit_id IN ?", visitIDs).Pluck("visit_id", &withVitals).Error; err != nil {
+		return out, err
+	}
+	for _, id := range withVitals {
+		out.HasVitals[id] = true
+	}
+
+	var notes []models.SoapNote
+	if err := r.db.WithContext(ctx).Select("visit_id", "status").
+		Where("visit_id IN ?", visitIDs).Find(&notes).Error; err != nil {
+		return out, err
+	}
+	for _, n := range notes {
+		out.SoapStatus[n.VisitID] = n.Status
+	}
+	return out, nil
+}
+
+func (r *repository) UpdateVisitFlow(ctx context.Context, visitID uuid.UUID, guard FlowGuard, change FlowChange) error {
+	tx := r.db.WithContext(ctx).Model(&models.Visit{}).
+		Where("id = ? AND visit_status = ?", visitID, guard.VisitStatus)
+	if len(guard.PoliQueue) > 0 {
+		tx = tx.Where("poli_queue_status IN ?", guard.PoliQueue)
+	}
+	set := change.Set
+	if change.CountCall {
+		set["poli_call_count"] = gorm.Expr("poli_call_count + 1")
+	}
+	res := tx.Updates(set)
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return ErrStateChanged
+	}
+	return nil
+}
+
+func (r *repository) ListHistory(ctx context.Context, patientID, excludeVisitID uuid.UUID, page, limit int) ([]models.Visit, int64, error) {
+	tx := r.db.WithContext(ctx).Model(&models.Visit{}).
+		Where("patient_id = ? AND id <> ? AND visit_status <> ?", patientID, excludeVisitID, models.VisitCancelled)
+
+	var total int64
+	if err := tx.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	var out []models.Visit
+	err := withVisitDetails(tx).
+		Order("visit_date DESC, created_at DESC").
+		Limit(limit).Offset((page - 1) * limit).
+		Find(&out).Error
+	if err != nil {
+		return nil, 0, err
+	}
+	return out, total, nil
+}
+
+func (r *repository) FindFinalNotes(ctx context.Context, visitIDs []uuid.UUID) (map[uuid.UUID]*models.SoapNote, error) {
+	out := map[uuid.UUID]*models.SoapNote{}
+	if len(visitIDs) == 0 {
+		return out, nil
+	}
+	var notes []models.SoapNote
+	err := r.db.WithContext(ctx).
+		Preload("Diagnoses", func(db *gorm.DB) *gorm.DB { return db.Order("sort_order") }).
+		Preload("Addenda", func(db *gorm.DB) *gorm.DB { return db.Order("created_at") }).
+		Where("visit_id IN ? AND status = ?", visitIDs, models.SoapFinal).
+		Find(&notes).Error
+	if err != nil {
+		return nil, err
+	}
+	for i := range notes {
+		out[notes[i].VisitID] = &notes[i]
+	}
+	return out, nil
+}
+
+func (r *repository) FindAttachments(ctx context.Context, visitIDs []uuid.UUID) (map[uuid.UUID][]models.File, error) {
+	out := map[uuid.UUID][]models.File{}
+	if len(visitIDs) == 0 {
+		return out, nil
+	}
+	var files []models.File
+	err := r.db.WithContext(ctx).
+		Where("resource_type = ? AND resource_id IN ? AND status = ?", AttachmentResourceType, visitIDs, models.FileUploaded).
+		Order("created_at").
+		Find(&files).Error
+	if err != nil {
+		return nil, err
+	}
+	for _, f := range files {
+		out[f.ResourceID] = append(out[f.ResourceID], f)
+	}
+	return out, nil
+}
+
+// withVisitDetails preloads the poli, doctor and patient (soft-deleted patients included).
+func withVisitDetails(tx *gorm.DB) *gorm.DB {
+	return tx.Preload("Poli").Preload("Doctor").Preload("Patient", func(db *gorm.DB) *gorm.DB { return db.Unscoped() })
+}
+
+func escapeLike(s string) string {
+	return strings.NewReplacer(`\`, `\`, `%`, `\%`, `_`, `\_`).Replace(s)
 }

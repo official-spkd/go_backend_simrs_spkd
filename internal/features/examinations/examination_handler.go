@@ -72,7 +72,10 @@ func (h *Handler) fail(c *gin.Context, err error) {
 	case errors.Is(err, ErrDoctorNotLinked), errors.Is(err, ErrNotYourVisit):
 		utils.AbortWithError(c, http.StatusForbidden, err.Error())
 	case errors.Is(err, ErrNoDoctor), errors.Is(err, ErrVisitCancelled), errors.Is(err, ErrVisitNotToday),
-		errors.Is(err, ErrVersionConflict), errors.Is(err, ErrFinalized), errors.Is(err, ErrNotFinalized):
+		errors.Is(err, ErrVersionConflict), errors.Is(err, ErrFinalized), errors.Is(err, ErrNotFinalized),
+		errors.Is(err, ErrStateChanged), errors.Is(err, ErrQueueNotToday), errors.Is(err, ErrCannotCall),
+		errors.Is(err, ErrNotCalled), errors.Is(err, ErrExamStarted), errors.Is(err, ErrExamNotStarted),
+		errors.Is(err, ErrVisitClosed), errors.Is(err, ErrSoapNotFinal):
 		utils.AbortWithError(c, http.StatusConflict, err.Error())
 	default:
 		utils.AbortWithError(c, http.StatusInternalServerError, "internal server error")

@@ -46,6 +46,31 @@ const (
 	QueueDone    QueueStatus = "Done"
 )
 
+// PoliQueueStatus is where the patient stands in the clinic's own queue, driven by the doctor.
+// It is separate from QueueStatus, which mirrors the registration desk (loket) ticket.
+type PoliQueueStatus string
+
+const (
+	PoliQueueWaiting   PoliQueueStatus = "Waiting"
+	PoliQueueCalled    PoliQueueStatus = "Called"
+	PoliQueueSkipped   PoliQueueStatus = "Skipped"
+	PoliQueueExamining PoliQueueStatus = "Examining"
+	PoliQueueDone      PoliQueueStatus = "Done"
+)
+
+const (
+	DischargeRecovered = "recovered"
+	DischargeImproved  = "improved"
+	DischargeUnchanged = "unchanged"
+)
+
+const (
+	DischargeHome      = "home"
+	DischargeFollowUp  = "follow_up"
+	DischargeReferred  = "referred"
+	DischargeInpatient = "inpatient"
+)
+
 type SatuSehatStatus string
 
 const (
@@ -80,6 +105,15 @@ type Visit struct {
 	VisitStatus     VisitStatus     `gorm:"size:20;not null;index"`
 	QueueStatus     QueueStatus     `gorm:"size:20;not null"`
 	SatuSehatStatus SatuSehatStatus `gorm:"size:20;not null"`
+
+	PoliQueueStatus PoliQueueStatus `gorm:"size:20;not null;default:Waiting"`
+	PoliCalledAt    *time.Time
+	PoliCallCount   int `gorm:"not null;default:0"`
+	ExamStartedAt   *time.Time
+	ClosedAt        *time.Time
+	// DischargeCondition and DischargeMethod are recorded when the doctor closes the visit.
+	DischargeCondition string `gorm:"size:20;not null;default:''"`
+	DischargeMethod    string `gorm:"size:20;not null;default:''"`
 
 	ResponsiblePerson string `gorm:"size:150"`
 	// ChiefComplaint keeps the original "complaint" column name so existing databases migrate in place.
