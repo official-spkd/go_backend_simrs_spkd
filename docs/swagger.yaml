@@ -1772,6 +1772,220 @@ definitions:
     required:
     - display_name
     type: object
+  schedules.CreateRequest:
+    properties:
+      doctor_id:
+        example: 9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93
+        type: string
+      effective_date:
+        example: "2026-10-01"
+        type: string
+      end_time:
+        example: "12:00"
+        type: string
+      jkn_quota:
+        example: 20
+        maximum: 1000
+        minimum: 0
+        type: integer
+      non_jkn_quota:
+        example: 10
+        maximum: 1000
+        minimum: 0
+        type: integer
+      start_time:
+        example: "08:00"
+        type: string
+      weekday:
+        example: 2
+        maximum: 6
+        minimum: 0
+        type: integer
+    required:
+    - doctor_id
+    - effective_date
+    - end_time
+    - jkn_quota
+    - non_jkn_quota
+    - start_time
+    - weekday
+    type: object
+  schedules.DoctorRef:
+    properties:
+      id:
+        example: 9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93
+        type: string
+      name:
+        example: dr. Maya Putri, Sp.PD
+        type: string
+      poli_code:
+        example: PD
+        type: string
+      poli_id:
+        example: 3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71
+        type: string
+      poli_name:
+        example: Internal Medicine
+        type: string
+      specialization:
+        example: Internal Medicine
+        type: string
+    type: object
+  schedules.ExceptionRequest:
+    properties:
+      date:
+        example: "2026-10-15"
+        type: string
+      doctor_id:
+        example: 9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93
+        type: string
+      reason:
+        example: Annual leave
+        maxLength: 200
+        type: string
+      substitute_doctor_id:
+        example: 1b7e4d90-3a6c-4f21-9d58-6c0a2e8f7b14
+        type: string
+    required:
+    - date
+    - doctor_id
+    - reason
+    type: object
+  schedules.ExceptionResponse:
+    properties:
+      created_at:
+        type: string
+      date:
+        example: "2026-10-15"
+        type: string
+      doctor:
+        $ref: '#/definitions/schedules.DoctorRef'
+      id:
+        example: 7e2a9b14-5d3c-4b68-a1f0-3c8d6e2b9a47
+        type: string
+      reason:
+        example: Annual leave
+        type: string
+      substitute:
+        $ref: '#/definitions/schedules.DoctorRef'
+    type: object
+  schedules.Response:
+    properties:
+      created_at:
+        type: string
+      doctor:
+        $ref: '#/definitions/schedules.DoctorRef'
+      effective_date:
+        example: "2026-10-01"
+        type: string
+      end_time:
+        example: "12:00"
+        type: string
+      id:
+        example: 5c0e1a7d-2f4b-4c39-8a6e-7d1b3f9e0a52
+        type: string
+      jkn_quota:
+        example: 20
+        type: integer
+      min_quota:
+        description: |-
+          MinQuota is the highest number of registered visits on this weekday over the next 30 days;
+          the total quota cannot go below it.
+        example: 23
+        type: integer
+      non_jkn_quota:
+        example: 10
+        type: integer
+      start_time:
+        example: "08:00"
+        type: string
+      total_quota:
+        example: 30
+        type: integer
+      updated_at:
+        type: string
+      weekday:
+        example: 2
+        type: integer
+    type: object
+  schedules.SessionResponse:
+    properties:
+      date:
+        example: "2026-10-13"
+        type: string
+      doctor:
+        $ref: '#/definitions/schedules.DoctorRef'
+      end_time:
+        example: "12:00"
+        type: string
+      exception_id:
+        description: ExceptionID is set on "leave" and "substitute" rows, to cancel
+          the leave.
+        example: 7e2a9b14-5d3c-4b68-a1f0-3c8d6e2b9a47
+        type: string
+      filled:
+        example: 23
+        type: integer
+      jkn_quota:
+        example: 20
+        type: integer
+      non_jkn_quota:
+        example: 10
+        type: integer
+      reason:
+        example: Annual leave
+        type: string
+      remaining:
+        example: 7
+        type: integer
+      replaced_doctor:
+        allOf:
+        - $ref: '#/definitions/schedules.DoctorRef'
+        description: ReplacedDoctor is the doctor on leave; only set on "substitute"
+          rows.
+      start_time:
+        example: "08:00"
+        type: string
+      status:
+        enum:
+        - active
+        - completed
+        - leave
+        - substitute
+        example: active
+        type: string
+      total_quota:
+        example: 30
+        type: integer
+    type: object
+  schedules.UpdateRequest:
+    properties:
+      effective_date:
+        example: "2026-10-01"
+        type: string
+      end_time:
+        example: "12:00"
+        type: string
+      jkn_quota:
+        example: 20
+        maximum: 1000
+        minimum: 0
+        type: integer
+      non_jkn_quota:
+        example: 10
+        maximum: 1000
+        minimum: 0
+        type: integer
+      start_time:
+        example: "08:00"
+        type: string
+    required:
+    - effective_date
+    - end_time
+    - jkn_quota
+    - non_jkn_quota
+    - start_time
+    type: object
   users.ResetPasswordRequest:
     properties:
       new_password:
@@ -4872,6 +5086,450 @@ paths:
       summary: Update a role's display name and description
       tags:
       - roles
+  /api/v1/schedules:
+    get:
+      description: Superadmin only. Weekly templates ordered Monday to Sunday. min_quota
+        is the highest number of registered visits on that weekday over the next 30
+        days; the total quota cannot go below it.
+      parameters:
+      - description: Only this doctor
+        in: query
+        name: doctor_id
+        type: string
+      - description: Only doctors of this poli
+        in: query
+        name: poli_id
+        type: string
+      - description: 0 = Sunday ... 6 = Saturday
+        in: query
+        name: weekday
+        type: integer
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page (max 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.PaginatedResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/schedules.Response'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List weekly schedules
+      tags:
+      - schedules
+    post:
+      consumes:
+      - application/json
+      description: Superadmin only. Creates the weekly template of one doctor for
+        one weekday (0 = Sunday ... 6 = Saturday). The total quota is jkn_quota +
+        non_jkn_quota and must be at least 1. Times use HH:MM and the end must be
+        after the start. effective_date cannot be in the past. A doctor has at most
+        one template per weekday.
+      parameters:
+      - description: Schedule data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/schedules.CreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/schedules.Response'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a weekly schedule
+      tags:
+      - schedules
+  /api/v1/schedules/{id}:
+    delete:
+      description: Superadmin only. A schedule with visits registered on that weekday
+        in the next 30 days cannot be deleted (409).
+      parameters:
+      - description: Schedule ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a weekly schedule
+      tags:
+      - schedules
+    get:
+      description: Superadmin only.
+      parameters:
+      - description: Schedule ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/schedules.Response'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a weekly schedule
+      tags:
+      - schedules
+    put:
+      consumes:
+      - application/json
+      description: Superadmin only. Replaces times, quotas and effective date; the
+        doctor and weekday cannot change. The total quota cannot be lower than the
+        visits already registered on that weekday in the next 30 days (409); existing
+        visits are never cancelled.
+      parameters:
+      - description: Schedule ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Schedule data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/schedules.UpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/schedules.Response'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a weekly schedule
+      tags:
+      - schedules
+  /api/v1/schedules/exceptions:
+    get:
+      description: Superadmin only. Leave exceptions ordered by date, optionally for
+        one doctor and a date range.
+      parameters:
+      - description: Only this doctor
+        in: query
+        name: doctor_id
+        type: string
+      - description: First date (YYYY-MM-DD)
+        in: query
+        name: from
+        type: string
+      - description: Last date (YYYY-MM-DD)
+        in: query
+        name: to
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page (max 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.PaginatedResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/schedules.ExceptionResponse'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List leaves
+      tags:
+      - schedules
+    post:
+      consumes:
+      - application/json
+      description: Superadmin only. Closes the doctor's session on a date (today or
+        later) and optionally hands it to a substitute doctor. The doctor must have
+        a schedule on that date. A substitute must be a different, active doctor who
+        practices on that weekday and is not on leave that day. When visits are already
+        registered, a substitute is required (409). Visits are not moved or cancelled;
+        the substitute's session counts them against its quota.
+      parameters:
+      - description: Leave data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/schedules.ExceptionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/schedules.ExceptionResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Record a leave
+      tags:
+      - schedules
+  /api/v1/schedules/exceptions/{id}:
+    delete:
+      description: Superadmin only. Reopens the doctor's session. Only today's and
+        future exceptions can be cancelled (400 for past ones).
+      parameters:
+      - description: Exception ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Cancel a leave
+      tags:
+      - schedules
+  /api/v1/schedules/sessions:
+    get:
+      description: Superadmin only. The doctor's sessions per date, derived from the
+        weekly schedule and leaves (nothing is stored). Defaults to the next 30 days
+        from today; a period can span at most 31 days. A leave gives a "leave" row
+        with zero quota, plus a "substitute" row when another doctor takes over; the
+        substitute row counts the visits of both doctors. filled is the number of
+        non-cancelled visits, so every registration channel shares one quota.
+      parameters:
+      - description: Doctor ID
+        in: query
+        name: doctor_id
+        required: true
+        type: string
+      - description: First date (YYYY-MM-DD), default today
+        in: query
+        name: from
+        type: string
+      - description: Last date (YYYY-MM-DD), default 29 days after from
+        in: query
+        name: to
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/schedules.SessionResponse'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List daily sessions
+      tags:
+      - schedules
   /api/v1/users:
     get:
       description: Superadmin only. Supports search by name, NIP or email, and filters
