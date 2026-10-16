@@ -10,14 +10,14 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/simrs-api ./cmd/app
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/simrs-v2-api ./cmd/app
 
 # --- run
 FROM alpine:3.20
 RUN apk add --no-cache ca-certificates tzdata \
     && addgroup -S app && adduser -S -G app app
 
-COPY --from=build /out/simrs-api /usr/local/bin/simrs-api
+COPY --from=build /out/simrs-v2-api /usr/local/bin/simrs-v2-api
 
 USER app
 EXPOSE 8080
