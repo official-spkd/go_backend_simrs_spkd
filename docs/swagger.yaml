@@ -258,6 +258,410 @@ definitions:
         example: superadmin
         type: string
     type: object
+  cashier.BillResponse:
+    properties:
+      coverage_limit:
+        example: 0
+        type: integer
+      discount_reason:
+        type: string
+      excess:
+        example: 0
+        type: integer
+      finalized_at:
+        type: string
+      invoice_number:
+        example: INV/20261016/0001
+        type: string
+      items:
+        items:
+          $ref: '#/definitions/cashier.ItemResponse'
+        type: array
+      paid_at:
+        type: string
+      payments:
+        items:
+          $ref: '#/definitions/cashier.PaymentResponse'
+        type: array
+      receipt_number:
+        example: KW/20261016/0001
+        type: string
+      scheme:
+        example: umum
+        type: string
+      status:
+        example: draft
+        type: string
+      tariff_effective_date:
+        example: "2026-01-01"
+        type: string
+      tariff_version:
+        example: 1
+        type: integer
+      totals:
+        $ref: '#/definitions/cashier.TotalsResponse'
+      visit:
+        $ref: '#/definitions/cashier.VisitResponse'
+    type: object
+  cashier.CashierRef:
+    properties:
+      id:
+        type: string
+      name:
+        example: Rina
+        type: string
+    type: object
+  cashier.CloseShiftRequest:
+    properties:
+      counted_cash:
+        example: 350000
+        minimum: 0
+        type: integer
+      note:
+        example: All receipts match.
+        maxLength: 500
+        type: string
+    required:
+    - counted_cash
+    type: object
+  cashier.DiscountRequest:
+    properties:
+      amount:
+        example: 25000
+        minimum: 0
+        type: integer
+      reason:
+        example: Patient is a hospital employee family member
+        maxLength: 500
+        type: string
+    type: object
+  cashier.DoctorRef:
+    properties:
+      id:
+        type: string
+      name:
+        example: dr. Andi
+        type: string
+      specialization:
+        example: Umum
+        type: string
+    type: object
+  cashier.ItemRequest:
+    properties:
+      name:
+        example: Wound dressing kit
+        maxLength: 150
+        type: string
+      price:
+        example: 45000
+        minimum: 1
+        type: integer
+      quantity:
+        example: 1
+        maximum: 1000
+        minimum: 1
+        type: integer
+      reason:
+        example: Used during the doctor's procedure
+        maxLength: 500
+        type: string
+    required:
+    - name
+    - price
+    - quantity
+    - reason
+    type: object
+  cashier.ItemResponse:
+    properties:
+      category:
+        example: administration
+        type: string
+      created_by:
+        type: string
+      id:
+        type: string
+      is_manual:
+        type: boolean
+      name:
+        example: Karcis rawat jalan
+        type: string
+      price:
+        example: 30000
+        type: integer
+      quantity:
+        example: 1
+        type: integer
+      reason:
+        type: string
+      served_at:
+        type: string
+      source:
+        example: registration
+        type: string
+      subtotal:
+        example: 30000
+        type: integer
+    type: object
+  cashier.PatientRef:
+    properties:
+      allergies:
+        type: string
+      birth_date:
+        example: "1990-01-01"
+        type: string
+      full_name:
+        example: Budi Santoso
+        type: string
+      gender:
+        example: Male
+        type: string
+      id:
+        type: string
+      medical_record_number:
+        example: RM-000123
+        type: string
+      nik:
+        example: "3273010101900001"
+        type: string
+    type: object
+  cashier.PaymentPart:
+    properties:
+      amount:
+        example: 105000
+        minimum: 0
+        type: integer
+      method:
+        enum:
+        - cash
+        - qris
+        - va
+        example: cash
+        type: string
+      received:
+        description: Received is the cash handed over, for cash only; the change is
+          computed from it.
+        example: 110000
+        minimum: 0
+        type: integer
+      reference:
+        example: QR-INV/20261016/0001
+        maxLength: 50
+        type: string
+    required:
+    - method
+    type: object
+  cashier.PaymentRequest:
+    properties:
+      payments:
+        items:
+          $ref: '#/definitions/cashier.PaymentPart'
+        maxItems: 3
+        type: array
+    type: object
+  cashier.PaymentResponse:
+    properties:
+      amount:
+        example: 105000
+        type: integer
+      cashier:
+        example: Rina
+        type: string
+      change:
+        example: 5000
+        type: integer
+      id:
+        type: string
+      method:
+        example: cash
+        type: string
+      paid_at:
+        type: string
+      received:
+        example: 110000
+        type: integer
+      reference:
+        type: string
+      shift_id:
+        type: string
+    type: object
+  cashier.PoliRef:
+    properties:
+      id:
+        type: string
+      name:
+        example: General Clinic
+        type: string
+      prefix_code:
+        example: UMUM
+        type: string
+    type: object
+  cashier.PrintRequest:
+    properties:
+      kind:
+        enum:
+        - print
+        - pdf
+        example: print
+        type: string
+    required:
+    - kind
+    type: object
+  cashier.SchemeRequest:
+    properties:
+      coverage_limit:
+        example: 500000
+        minimum: 0
+        type: integer
+      excess:
+        example: 0
+        minimum: 0
+        type: integer
+      scheme:
+        enum:
+        - umum
+        - bpjs
+        - asuransi
+        example: asuransi
+        type: string
+    required:
+    - scheme
+    type: object
+  cashier.ShiftResponse:
+    properties:
+      cash_difference:
+        type: integer
+      cashier:
+        $ref: '#/definitions/cashier.CashierRef'
+      closed_at:
+        type: string
+      counted_cash:
+        type: integer
+      id:
+        type: string
+      is_open:
+        example: true
+        type: boolean
+      note:
+        type: string
+      opened_at:
+        type: string
+      summary:
+        $ref: '#/definitions/cashier.ShiftSummaryResponse'
+      total:
+        type: integer
+    type: object
+  cashier.ShiftSummaryResponse:
+    properties:
+      cash:
+        example: 350000
+        type: integer
+      cash_count:
+        example: 3
+        type: integer
+      qris:
+        example: 120000
+        type: integer
+      qris_count:
+        example: 1
+        type: integer
+      total:
+        example: 470000
+        type: integer
+      transactions:
+        example: 4
+        type: integer
+      va:
+        example: 0
+        type: integer
+      va_count:
+        example: 0
+        type: integer
+    type: object
+  cashier.SummaryResponse:
+    properties:
+      finalized_at:
+        type: string
+      invoice_number:
+        example: INV/20261016/0001
+        type: string
+      paid_at:
+        type: string
+      receipt_number:
+        example: KW/20261016/0001
+        type: string
+      scheme:
+        example: umum
+        type: string
+      status:
+        example: draft
+        type: string
+      totals:
+        $ref: '#/definitions/cashier.TotalsResponse'
+      visit:
+        $ref: '#/definitions/cashier.VisitResponse'
+    type: object
+  cashier.TotalsResponse:
+    properties:
+      discount:
+        example: 0
+        type: integer
+      excess:
+        example: 0
+        type: integer
+      net:
+        example: 105000
+        type: integer
+      paid:
+        example: 0
+        type: integer
+      patient_portion:
+        example: 105000
+        type: integer
+      payer_covered:
+        example: 0
+        type: integer
+      remaining:
+        example: 105000
+        type: integer
+      subtotal:
+        example: 105000
+        type: integer
+    type: object
+  cashier.VisitResponse:
+    properties:
+      bpjs_card_number:
+        type: string
+      completed_at:
+        type: string
+      coverage_limit:
+        type: integer
+      doctor:
+        $ref: '#/definitions/cashier.DoctorRef'
+      id:
+        type: string
+      insurance_name:
+        type: string
+      patient:
+        $ref: '#/definitions/cashier.PatientRef'
+      penjamin:
+        example: umum
+        type: string
+      poli:
+        $ref: '#/definitions/cashier.PoliRef'
+      policy_number:
+        type: string
+      queue_number:
+        example: "001"
+        type: string
+      registered_at:
+        type: string
+      visit_date:
+        example: "2026-10-16"
+        type: string
+      visit_status:
+        example: Completed
+        type: string
+    type: object
   doctors.DoctorRequest:
     properties:
       ihs_number:
@@ -2224,6 +2628,616 @@ paths:
       summary: Register a user
       tags:
       - auth
+  /api/v1/cashier/bills:
+    get:
+      description: Cashier only. Finalized and paid bills, most recent first. Search
+        by patient name, medical record number, invoice or receipt number.
+      parameters:
+      - description: Search by patient, medical record, invoice or receipt number
+        in: query
+        name: search
+        type: string
+      - description: Only final (awaiting payment) or paid bills
+        enum:
+        - final
+        - paid
+        in: query
+        name: status
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page (max 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.PaginatedResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/cashier.SummaryResponse'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List invoices and receipts
+      tags:
+      - cashier
+  /api/v1/cashier/bills/{visit_id}:
+    get:
+      description: Cashier only. While draft, the lines and totals are provisional;
+        a final bill's lines are frozen.
+      parameters:
+      - description: Visit ID
+        in: path
+        name: visit_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/cashier.BillResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a visit's bill
+      tags:
+      - cashier
+  /api/v1/cashier/bills/{visit_id}/discount:
+    put:
+      consumes:
+      - application/json
+      description: Cashier only, draft bills only. A discount needs a reason of at
+        least 15 characters and cannot exceed the subtotal; amount 0 removes it. Recorded
+        in the bill's audit trail.
+      parameters:
+      - description: Visit ID
+        in: path
+        name: visit_id
+        required: true
+        type: string
+      - description: Discount
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/cashier.DiscountRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/cashier.BillResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Set the discount
+      tags:
+      - cashier
+  /api/v1/cashier/bills/{visit_id}/finalize:
+    post:
+      description: Cashier only, and only once the visit is Completed (the doctor
+        finalized the SOAP note). Freezes the lines and issues the invoice number
+        (INV/YYYYMMDD/NNNN).
+      parameters:
+      - description: Visit ID
+        in: path
+        name: visit_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/cashier.BillResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Finalize the bill
+      tags:
+      - cashier
+  /api/v1/cashier/bills/{visit_id}/items:
+    post:
+      consumes:
+      - application/json
+      description: Cashier only, draft bills only. Adds a line under "other"; it needs
+        a reason of at least 15 characters. Recorded in the bill's audit trail.
+      parameters:
+      - description: Visit ID
+        in: path
+        name: visit_id
+        required: true
+        type: string
+      - description: Item
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/cashier.ItemRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/cashier.BillResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Add a manual item
+      tags:
+      - cashier
+  /api/v1/cashier/bills/{visit_id}/payments:
+    post:
+      consumes:
+      - application/json
+      description: Cashier only, final bills only. The payments must cover the remaining
+        patient portion, which the server recomputes; each part is capped to what
+        is left, and cash change is computed from received. Send no payments when
+        the patient portion is 0. Issues the receipt number (KW/YYYYMMDD/NNNN), records
+        the payments in the cashier's open shift (opening one if needed), and moves
+        the visit to Paid.
+      parameters:
+      - description: Visit ID
+        in: path
+        name: visit_id
+        required: true
+        type: string
+      - description: Payments
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/cashier.PaymentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/cashier.BillResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Pay the bill
+      tags:
+      - cashier
+  /api/v1/cashier/bills/{visit_id}/prints:
+    post:
+      consumes:
+      - application/json
+      description: Cashier only, for finalized or paid bills. Records that the invoice
+        was printed or saved as PDF, in the bill's audit trail.
+      parameters:
+      - description: Visit ID
+        in: path
+        name: visit_id
+        required: true
+        type: string
+      - description: Print
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/cashier.PrintRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Record a print
+      tags:
+      - cashier
+  /api/v1/cashier/bills/{visit_id}/scheme:
+    put:
+      consumes:
+      - application/json
+      description: 'Cashier only, draft bills only. Sets who pays: umum (the patient),
+        bpjs (the patient pays only the class-upgrade excess) or asuransi (the insurer
+        pays up to the coverage limit). Recorded in the bill''s audit trail.'
+      parameters:
+      - description: Visit ID
+        in: path
+        name: visit_id
+        required: true
+        type: string
+      - description: Scheme
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/cashier.SchemeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/cashier.BillResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Set the payment scheme
+      tags:
+      - cashier
+  /api/v1/cashier/bills/worklist:
+    get:
+      description: Cashier only. Every visit of the date that is not cancelled, with
+        its bill status and totals; a visit with nothing billed yet is a draft priced
+        from its registration and doctor. visit.visit_status tells ready to bill (Completed)
+        from still at the clinic (Registered, Served) and paid (Paid).
+      parameters:
+      - description: Visit date (YYYY-MM-DD), default today
+        in: query
+        name: date
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page (max 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.PaginatedResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/cashier.SummaryResponse'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Bill worklist
+      tags:
+      - cashier
+  /api/v1/cashier/shifts:
+    get:
+      description: Cashier and management. Shifts opened on the date, newest first,
+        each with what it received per payment method; for today, shifts still open
+        from earlier are included.
+      parameters:
+      - description: Date (YYYY-MM-DD), default today
+        in: query
+        name: date
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page (max 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.PaginatedResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/cashier.ShiftResponse'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List cashier shifts
+      tags:
+      - cashier
+  /api/v1/cashier/shifts/{id}/close:
+    post:
+      consumes:
+      - application/json
+      description: Cashier only, for the cashier's own open shift. Records the counted
+        cash and locks the shift's total; a note of at least 10 characters is required
+        when the count differs from the recorded cash. The cashier's next shift opens
+        right away.
+      parameters:
+      - description: Shift ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Cash count
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/cashier.CloseShiftRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/cashier.ShiftResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Close a shift
+      tags:
+      - cashier
+  /api/v1/cashier/shifts/current:
+    get:
+      description: Cashier only. The signed-in cashier's open shift, or data null
+        when none is open. A shift opens with the first payment and again right after
+        the previous one is closed.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/cashier.ShiftResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get my open shift
+      tags:
+      - cashier
   /api/v1/counters:
     get:
       description: Front Office only. Each counter comes with the queue it is handling

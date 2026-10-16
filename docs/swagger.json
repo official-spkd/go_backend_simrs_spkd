@@ -492,6 +492,961 @@
                 }
             }
         },
+        "/api/v1/cashier/bills": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Cashier only. Finalized and paid bills, most recent first. Search by patient name, medical record number, invoice or receipt number.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cashier"
+                ],
+                "summary": "List invoices and receipts",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search by patient, medical record, invoice or receipt number",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "final",
+                            "paid"
+                        ],
+                        "type": "string",
+                        "description": "Only final (awaiting payment) or paid bills",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Items per page (max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.PaginatedResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/cashier.SummaryResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/cashier/bills/worklist": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Cashier only. Every visit of the date that is not cancelled, with its bill status and totals; a visit with nothing billed yet is a draft priced from its registration and doctor. visit.visit_status tells ready to bill (Completed) from still at the clinic (Registered, Served) and paid (Paid).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cashier"
+                ],
+                "summary": "Bill worklist",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Visit date (YYYY-MM-DD), default today",
+                        "name": "date",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Items per page (max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.PaginatedResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/cashier.SummaryResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/cashier/bills/{visit_id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Cashier only. While draft, the lines and totals are provisional; a final bill's lines are frozen.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cashier"
+                ],
+                "summary": "Get a visit's bill",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Visit ID",
+                        "name": "visit_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/cashier.BillResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/cashier/bills/{visit_id}/discount": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Cashier only, draft bills only. A discount needs a reason of at least 15 characters and cannot exceed the subtotal; amount 0 removes it. Recorded in the bill's audit trail.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cashier"
+                ],
+                "summary": "Set the discount",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Visit ID",
+                        "name": "visit_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Discount",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/cashier.DiscountRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/cashier.BillResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/cashier/bills/{visit_id}/finalize": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Cashier only, and only once the visit is Completed (the doctor finalized the SOAP note). Freezes the lines and issues the invoice number (INV/YYYYMMDD/NNNN).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cashier"
+                ],
+                "summary": "Finalize the bill",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Visit ID",
+                        "name": "visit_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/cashier.BillResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/cashier/bills/{visit_id}/items": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Cashier only, draft bills only. Adds a line under \"other\"; it needs a reason of at least 15 characters. Recorded in the bill's audit trail.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cashier"
+                ],
+                "summary": "Add a manual item",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Visit ID",
+                        "name": "visit_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Item",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/cashier.ItemRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/cashier.BillResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/cashier/bills/{visit_id}/payments": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Cashier only, final bills only. The payments must cover the remaining patient portion, which the server recomputes; each part is capped to what is left, and cash change is computed from received. Send no payments when the patient portion is 0. Issues the receipt number (KW/YYYYMMDD/NNNN), records the payments in the cashier's open shift (opening one if needed), and moves the visit to Paid.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cashier"
+                ],
+                "summary": "Pay the bill",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Visit ID",
+                        "name": "visit_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Payments",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/cashier.PaymentRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/cashier.BillResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/cashier/bills/{visit_id}/prints": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Cashier only, for finalized or paid bills. Records that the invoice was printed or saved as PDF, in the bill's audit trail.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cashier"
+                ],
+                "summary": "Record a print",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Visit ID",
+                        "name": "visit_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Print",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/cashier.PrintRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/cashier/bills/{visit_id}/scheme": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Cashier only, draft bills only. Sets who pays: umum (the patient), bpjs (the patient pays only the class-upgrade excess) or asuransi (the insurer pays up to the coverage limit). Recorded in the bill's audit trail.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cashier"
+                ],
+                "summary": "Set the payment scheme",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Visit ID",
+                        "name": "visit_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Scheme",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/cashier.SchemeRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/cashier.BillResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/cashier/shifts": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Cashier and management. Shifts opened on the date, newest first, each with what it received per payment method; for today, shifts still open from earlier are included.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cashier"
+                ],
+                "summary": "List cashier shifts",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Date (YYYY-MM-DD), default today",
+                        "name": "date",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Items per page (max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.PaginatedResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/cashier.ShiftResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/cashier/shifts/current": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Cashier only. The signed-in cashier's open shift, or data null when none is open. A shift opens with the first payment and again right after the previous one is closed.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cashier"
+                ],
+                "summary": "Get my open shift",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/cashier.ShiftResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/cashier/shifts/{id}/close": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Cashier only, for the cashier's own open shift. Records the counted cash and locks the shift's total; a note of at least 10 characters is required when the count differs from the recorded cash. The cashier's next shift opens right away.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cashier"
+                ],
+                "summary": "Close a shift",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Shift ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Cash count",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/cashier.CloseShiftRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/cashier.ShiftResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/counters": {
             "get": {
                 "security": [
@@ -4912,6 +5867,573 @@
                 "role": {
                     "type": "string",
                     "example": "superadmin"
+                }
+            }
+        },
+        "cashier.BillResponse": {
+            "type": "object",
+            "properties": {
+                "coverage_limit": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "discount_reason": {
+                    "type": "string"
+                },
+                "excess": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "finalized_at": {
+                    "type": "string"
+                },
+                "invoice_number": {
+                    "type": "string",
+                    "example": "INV/20261016/0001"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/cashier.ItemResponse"
+                    }
+                },
+                "paid_at": {
+                    "type": "string"
+                },
+                "payments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/cashier.PaymentResponse"
+                    }
+                },
+                "receipt_number": {
+                    "type": "string",
+                    "example": "KW/20261016/0001"
+                },
+                "scheme": {
+                    "type": "string",
+                    "example": "umum"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "draft"
+                },
+                "tariff_effective_date": {
+                    "type": "string",
+                    "example": "2026-01-01"
+                },
+                "tariff_version": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "totals": {
+                    "$ref": "#/definitions/cashier.TotalsResponse"
+                },
+                "visit": {
+                    "$ref": "#/definitions/cashier.VisitResponse"
+                }
+            }
+        },
+        "cashier.CashierRef": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Rina"
+                }
+            }
+        },
+        "cashier.CloseShiftRequest": {
+            "type": "object",
+            "required": [
+                "counted_cash"
+            ],
+            "properties": {
+                "counted_cash": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "example": 350000
+                },
+                "note": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "example": "All receipts match."
+                }
+            }
+        },
+        "cashier.DiscountRequest": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "example": 25000
+                },
+                "reason": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "example": "Patient is a hospital employee family member"
+                }
+            }
+        },
+        "cashier.DoctorRef": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "dr. Andi"
+                },
+                "specialization": {
+                    "type": "string",
+                    "example": "Umum"
+                }
+            }
+        },
+        "cashier.ItemRequest": {
+            "type": "object",
+            "required": [
+                "name",
+                "price",
+                "quantity",
+                "reason"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "maxLength": 150,
+                    "example": "Wound dressing kit"
+                },
+                "price": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 45000
+                },
+                "quantity": {
+                    "type": "integer",
+                    "maximum": 1000,
+                    "minimum": 1,
+                    "example": 1
+                },
+                "reason": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "example": "Used during the doctor's procedure"
+                }
+            }
+        },
+        "cashier.ItemResponse": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "string",
+                    "example": "administration"
+                },
+                "created_by": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_manual": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Karcis rawat jalan"
+                },
+                "price": {
+                    "type": "integer",
+                    "example": 30000
+                },
+                "quantity": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "served_at": {
+                    "type": "string"
+                },
+                "source": {
+                    "type": "string",
+                    "example": "registration"
+                },
+                "subtotal": {
+                    "type": "integer",
+                    "example": 30000
+                }
+            }
+        },
+        "cashier.PatientRef": {
+            "type": "object",
+            "properties": {
+                "allergies": {
+                    "type": "string"
+                },
+                "birth_date": {
+                    "type": "string",
+                    "example": "1990-01-01"
+                },
+                "full_name": {
+                    "type": "string",
+                    "example": "Budi Santoso"
+                },
+                "gender": {
+                    "type": "string",
+                    "example": "Male"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "medical_record_number": {
+                    "type": "string",
+                    "example": "RM-000123"
+                },
+                "nik": {
+                    "type": "string",
+                    "example": "3273010101900001"
+                }
+            }
+        },
+        "cashier.PaymentPart": {
+            "type": "object",
+            "required": [
+                "method"
+            ],
+            "properties": {
+                "amount": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "example": 105000
+                },
+                "method": {
+                    "type": "string",
+                    "enum": [
+                        "cash",
+                        "qris",
+                        "va"
+                    ],
+                    "example": "cash"
+                },
+                "received": {
+                    "description": "Received is the cash handed over, for cash only; the change is computed from it.",
+                    "type": "integer",
+                    "minimum": 0,
+                    "example": 110000
+                },
+                "reference": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "example": "QR-INV/20261016/0001"
+                }
+            }
+        },
+        "cashier.PaymentRequest": {
+            "type": "object",
+            "properties": {
+                "payments": {
+                    "type": "array",
+                    "maxItems": 3,
+                    "items": {
+                        "$ref": "#/definitions/cashier.PaymentPart"
+                    }
+                }
+            }
+        },
+        "cashier.PaymentResponse": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "integer",
+                    "example": 105000
+                },
+                "cashier": {
+                    "type": "string",
+                    "example": "Rina"
+                },
+                "change": {
+                    "type": "integer",
+                    "example": 5000
+                },
+                "id": {
+                    "type": "string"
+                },
+                "method": {
+                    "type": "string",
+                    "example": "cash"
+                },
+                "paid_at": {
+                    "type": "string"
+                },
+                "received": {
+                    "type": "integer",
+                    "example": 110000
+                },
+                "reference": {
+                    "type": "string"
+                },
+                "shift_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "cashier.PoliRef": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "General Clinic"
+                },
+                "prefix_code": {
+                    "type": "string",
+                    "example": "UMUM"
+                }
+            }
+        },
+        "cashier.PrintRequest": {
+            "type": "object",
+            "required": [
+                "kind"
+            ],
+            "properties": {
+                "kind": {
+                    "type": "string",
+                    "enum": [
+                        "print",
+                        "pdf"
+                    ],
+                    "example": "print"
+                }
+            }
+        },
+        "cashier.SchemeRequest": {
+            "type": "object",
+            "required": [
+                "scheme"
+            ],
+            "properties": {
+                "coverage_limit": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "example": 500000
+                },
+                "excess": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "example": 0
+                },
+                "scheme": {
+                    "type": "string",
+                    "enum": [
+                        "umum",
+                        "bpjs",
+                        "asuransi"
+                    ],
+                    "example": "asuransi"
+                }
+            }
+        },
+        "cashier.ShiftResponse": {
+            "type": "object",
+            "properties": {
+                "cash_difference": {
+                    "type": "integer"
+                },
+                "cashier": {
+                    "$ref": "#/definitions/cashier.CashierRef"
+                },
+                "closed_at": {
+                    "type": "string"
+                },
+                "counted_cash": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_open": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "note": {
+                    "type": "string"
+                },
+                "opened_at": {
+                    "type": "string"
+                },
+                "summary": {
+                    "$ref": "#/definitions/cashier.ShiftSummaryResponse"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "cashier.ShiftSummaryResponse": {
+            "type": "object",
+            "properties": {
+                "cash": {
+                    "type": "integer",
+                    "example": 350000
+                },
+                "cash_count": {
+                    "type": "integer",
+                    "example": 3
+                },
+                "qris": {
+                    "type": "integer",
+                    "example": 120000
+                },
+                "qris_count": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "total": {
+                    "type": "integer",
+                    "example": 470000
+                },
+                "transactions": {
+                    "type": "integer",
+                    "example": 4
+                },
+                "va": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "va_count": {
+                    "type": "integer",
+                    "example": 0
+                }
+            }
+        },
+        "cashier.SummaryResponse": {
+            "type": "object",
+            "properties": {
+                "finalized_at": {
+                    "type": "string"
+                },
+                "invoice_number": {
+                    "type": "string",
+                    "example": "INV/20261016/0001"
+                },
+                "paid_at": {
+                    "type": "string"
+                },
+                "receipt_number": {
+                    "type": "string",
+                    "example": "KW/20261016/0001"
+                },
+                "scheme": {
+                    "type": "string",
+                    "example": "umum"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "draft"
+                },
+                "totals": {
+                    "$ref": "#/definitions/cashier.TotalsResponse"
+                },
+                "visit": {
+                    "$ref": "#/definitions/cashier.VisitResponse"
+                }
+            }
+        },
+        "cashier.TotalsResponse": {
+            "type": "object",
+            "properties": {
+                "discount": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "excess": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "net": {
+                    "type": "integer",
+                    "example": 105000
+                },
+                "paid": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "patient_portion": {
+                    "type": "integer",
+                    "example": 105000
+                },
+                "payer_covered": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "remaining": {
+                    "type": "integer",
+                    "example": 105000
+                },
+                "subtotal": {
+                    "type": "integer",
+                    "example": 105000
+                }
+            }
+        },
+        "cashier.VisitResponse": {
+            "type": "object",
+            "properties": {
+                "bpjs_card_number": {
+                    "type": "string"
+                },
+                "completed_at": {
+                    "type": "string"
+                },
+                "coverage_limit": {
+                    "type": "integer"
+                },
+                "doctor": {
+                    "$ref": "#/definitions/cashier.DoctorRef"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "insurance_name": {
+                    "type": "string"
+                },
+                "patient": {
+                    "$ref": "#/definitions/cashier.PatientRef"
+                },
+                "penjamin": {
+                    "type": "string",
+                    "example": "umum"
+                },
+                "poli": {
+                    "$ref": "#/definitions/cashier.PoliRef"
+                },
+                "policy_number": {
+                    "type": "string"
+                },
+                "queue_number": {
+                    "type": "string",
+                    "example": "001"
+                },
+                "registered_at": {
+                    "type": "string"
+                },
+                "visit_date": {
+                    "type": "string",
+                    "example": "2026-10-16"
+                },
+                "visit_status": {
+                    "type": "string",
+                    "example": "Completed"
                 }
             }
         },

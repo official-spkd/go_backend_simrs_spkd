@@ -11,6 +11,7 @@ import (
 
 	"gin-quickstart/internal/features/apm"
 	"gin-quickstart/internal/features/auth"
+	"gin-quickstart/internal/features/cashier"
 	"gin-quickstart/internal/features/doctors"
 	"gin-quickstart/internal/features/examinations"
 	"gin-quickstart/internal/features/patients"
@@ -63,6 +64,10 @@ func New(ctx context.Context, cfg *config.Config, db *gorm.DB) (*gin.Engine, err
 	if err := queueSvc.SeedCounters(ctx); err != nil {
 		return nil, fmt.Errorf("seed counters: %w", err)
 	}
+	cashierSvc := cashier.NewService(cashier.NewRepository(db))
+	if err := cashierSvc.SeedTariffs(ctx); err != nil {
+		return nil, fmt.Errorf("seed tariffs: %w", err)
+	}
 
 	router := gin.Default()
 	router.Use(middleware.SecurityHeaders())
@@ -90,6 +95,8 @@ func New(ctx context.Context, cfg *config.Config, db *gorm.DB) (*gin.Engine, err
 	}
 	queues.RegisterRoutes(v1, queues.NewHandler(queueSvc), requiredAuth, frontOfficeOnly,
 		middleware.RequireRoles(roles.FrontOffice, roles.Doctor))
+	cashier.RegisterRoutes(v1, cashier.NewHandler(cashierSvc), requiredAuth, middleware.RequireRoles(roles.Cashier),
+		middleware.RequireRoles(roles.Cashier, roles.Management))
 
 	return router, nil
 }
