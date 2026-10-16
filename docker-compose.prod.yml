@@ -1,28 +1,9 @@
-# Production, backend only: API + PostgreSQL + MinIO. The frontend is deployed separately.
-#
-# TLS and the public subdomains are handled by the reverse proxy that already runs on the server
-# (it owns ports 80/443), so this stack has no proxy of its own. Point it at:
-#
-#   api.<DOMAIN>    ->  127.0.0.1:${API_HOST_PORT:-18080}     (the API, + /swagger)
-#   files.<DOMAIN>  ->  127.0.0.1:${MINIO_HOST_PORT:-19000}   (MinIO S3; browsers upload and download here)
-#
-# If your proxy runs in a container it cannot reach the host's 127.0.0.1; connect it to this stack's
-# network instead and use the container names as upstreams (simrs-v2-api-prod:8080,
-# simrs-v2-api-prod-minio:9000):
-#   docker network connect simrs-v2-api-prod-net <your-proxy-container>
-# files.<DOMAIN> must pass the Host header unchanged and allow large request bodies, because
-# presigned URLs are signed for that host.
-#
-# Setup:
-#   1. cp .env.prod.example .env.prod   and fill it in (never commit .env.prod).
-#      Set CORS_ALLOWED_ORIGINS to the address(es) where the frontend is served (empty = same-origin only).
-#   2. docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
-# Always pass --env-file .env.prod: without it Compose reads the development .env instead. The API
-# container reads no env file; DB_HOST, MINIO_ENDPOINT and MINIO_PUBLIC_ENDPOINT are set below.
-#
-# Every container, network and volume is named "simrs-v2-api-prod*" / "simrs_v2_api_prod_*" so this
-# stack cannot clash with other services on the same host. PostgreSQL is not published; the API and
-# MinIO are published on 127.0.0.1 only.
+# Production backend: API + PostgreSQL + MinIO.
+#   cp .env.prod.example .env.prod    # fill it in, never commit it
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+# Always pass --env-file .env.prod (otherwise Compose reads the development .env).
+# Names are unique ("simrs-v2-api-prod*") so they cannot clash with other stacks on the host.
+# The API and MinIO listen on 127.0.0.1 only; put your reverse proxy in front for public access.
 name: simrs-v2-api-prod
 
 services:
@@ -46,19 +27,19 @@ services:
       DB_USER: ${DB_USER:?set DB_USER in .env.prod}
       DB_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env.prod}
       DB_NAME: ${DB_NAME:-simrs}
-      DB_SSLMODE: disable # traffic never leaves the private network
+      DB_SSLMODE: disable
       DB_TIMEZONE: ${DB_TIMEZONE:-Asia/Jakarta}
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env.prod (at least 32 characters)}
       JWT_ACCESS_TTL_HOURS: ${JWT_ACCESS_TTL_HOURS:-8}
-      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-} # empty = same-origin only; set the frontend origin for a separate frontend
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-} # empty = same-origin only
       MINIO_ENDPOINT: simrs-v2-api-prod-minio:9000
       MINIO_USE_SSL: "false"
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?set MINIO_ACCESS_KEY in .env.prod}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?set MINIO_SECRET_KEY in .env.prod (at least 8 characters)}
       MINIO_BUCKET: ${MINIO_BUCKET:-simrs-files}
       MINIO_REGION: ${MINIO_REGION:-us-east-1}
-      # Presigned URLs are signed for this host, so it must be the public one the browser opens.
-      MINIO_PUBLIC_ENDPOINT: https://files.${DOMAIN}
+      # The address the browser uses for file uploads/downloads (presigned URLs are signed for it).
+      MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-http://localhost:19000}
     networks:
       - simrs-v2-api-prod-net
 
@@ -80,8 +61,8 @@ services:
     networks:
       - simrs-v2-api-prod-net
 
-  # The Chainguard image runs as user 65532 and has no shell, so this one-off container gives that
-  # user the data volume before MinIO starts.
+  # The Chainguard MinIO image runs as user 65532 and has no shell, so this one-off container gives
+  # that user the data volume before MinIO starts. It exits right after (status "Exited (0)" is normal).
   simrs-v2-api-prod-minio-init:
     image: alpine:3.20
     container_name: simrs-v2-api-prod-minio-init
@@ -97,7 +78,6 @@ services:
     depends_on:
       simrs-v2-api-prod-minio-init:
         condition: service_completed_successfully
-    # The web console (port 9001) is not published; reach it through a protected proxy route if needed.
     command: ["server", "/data", "--console-address", ":9001"]
     ports:
       - "127.0.0.1:${MINIO_HOST_PORT:-19000}:9000"
