@@ -14,5 +14,6 @@ func RegisterRoutes(rg *gin.RouterGroup, h *Handler, lookupLimit, createLimit, g
 	open := g.Group("", generalLimit)
 	open.GET("/polis", h.ListPolis)
 	open.GET("/doctors", h.ListDoctors)
+	open.GET("/sessions", h.ListSessions)
 	open.POST("/visits", h.Register)
 }

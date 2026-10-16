@@ -83,6 +83,28 @@ func (h *Handler) ListDoctors(c *gin.Context) {
 	utils.Success(c, http.StatusOK, "Doctors retrieved successfully", data)
 }
 
+// @Summary		APM: list today's sessions
+// @Description	Public (no login). Today's practice hours and remaining quota of the doctors with a weekly schedule, optionally of one poli. A doctor on leave has status "leave"; a doctor without a session today is absent. Only today can be asked. Rate limited per IP.
+// @Tags			apm
+// @Produce		json
+// @Param			poli_id	query		string	false	"Only doctors of this poli"
+// @Success		200		{object}	utils.Response{data=[]SessionBrief}
+// @Failure		400		{object}	utils.ErrorResponse
+// @Failure		429		{object}	utils.ErrorResponse
+// @Router			/api/v1/apm/sessions [get]
+func (h *Handler) ListSessions(c *gin.Context) {
+	var req SessionListRequest
+	if !utils.BindQuery(c, &req) {
+		return
+	}
+	data, err := h.service.ListSessions(c.Request.Context(), req.PoliID)
+	if err != nil {
+		h.fail(c, err)
+		return
+	}
+	utils.Success(c, http.StatusOK, "Sessions retrieved successfully", data)
+}
+
 // @Summary		APM: register a new patient
 // @Description	Public (no login). Creates a patient record with the same fields and validation as the front desk (NIK must be a valid, unused 16-digit number; bpjs_number optional). Returns the brief patient (id and No. RM) to pass to POST /apm/visits. An existing NIK or BPJS number is refused with 409: that person is a returning patient and should be looked up instead. Strictly rate limited per IP (5 per minute).
 // @Tags			apm

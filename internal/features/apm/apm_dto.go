@@ -67,6 +67,23 @@ type DoctorBrief struct {
 	Poli           PoliBrief `json:"poli"`
 }
 
+type SessionListRequest struct {
+	PoliID string `form:"poli_id" json:"poli_id" binding:"omitempty,uuid"`
+}
+
+// SessionBrief is today's practice session of one doctor: only hours and quota, which is what a
+// kiosk needs to hide doctors that cannot take a patient.
+type SessionBrief struct {
+	DoctorID   string `json:"doctor_id" example:"9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93"`
+	StartTime  string `json:"start_time" example:"08:00"`
+	EndTime    string `json:"end_time" example:"12:00"`
+	Status     string `json:"status" enums:"active,substitute,leave" example:"active"`
+	TotalQuota int    `json:"total_quota" example:"30"`
+	Remaining  int    `json:"remaining" example:"7"`
+	// ReplacedDoctorName is the doctor this one replaces today (leave or no session); null otherwise.
+	ReplacedDoctorName *string `json:"replaced_doctor_name" example:"dr. Maya Putri, Sp.PD"`
+}
+
 // Ticket is what the kiosk prints after a successful registration.
 type Ticket struct {
 	VisitID             string          `json:"visit_id" example:"104dd35e-2b3a-4b2a-b38c-8bdd0e1ecc79"`

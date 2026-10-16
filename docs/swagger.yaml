@@ -136,6 +136,36 @@ definitions:
     - poli_id
     - visit_type
     type: object
+  apm.SessionBrief:
+    properties:
+      doctor_id:
+        example: 9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93
+        type: string
+      end_time:
+        example: "12:00"
+        type: string
+      remaining:
+        example: 7
+        type: integer
+      replaced_doctor_name:
+        description: ReplacedDoctorName is the doctor this one replaces today (leave
+          or no session); null otherwise.
+        example: dr. Maya Putri, Sp.PD
+        type: string
+      start_time:
+        example: "08:00"
+        type: string
+      status:
+        enum:
+        - active
+        - substitute
+        - leave
+        example: active
+        type: string
+      total_quota:
+        example: 30
+        type: integer
+    type: object
   apm.Ticket:
     properties:
       doctor:
@@ -1535,6 +1565,41 @@ definitions:
     required:
     - display_name
     type: object
+  schedules.AvailabilityResponse:
+    properties:
+      date:
+        example: "2026-10-16"
+        type: string
+      doctor:
+        $ref: '#/definitions/schedules.DoctorRef'
+      end_time:
+        example: "12:00"
+        type: string
+      filled:
+        example: 23
+        type: integer
+      remaining:
+        example: 7
+        type: integer
+      replaced_doctor:
+        allOf:
+        - $ref: '#/definitions/schedules.DoctorRef'
+        description: ReplacedDoctor is the doctor on leave or without a session whom
+          this doctor replaces; only on "substitute" rows.
+      start_time:
+        example: "08:00"
+        type: string
+      status:
+        enum:
+        - active
+        - substitute
+        - leave
+        example: active
+        type: string
+      total_quota:
+        example: 30
+        type: integer
+    type: object
   schedules.CreateRequest:
     properties:
       doctor_id:
@@ -2281,6 +2346,42 @@ paths:
       summary: 'APM: list polis'
       tags:
       - apm
+  /api/v1/apm/sessions:
+    get:
+      description: Public (no login). Today's practice hours and remaining quota of
+        the doctors with a weekly schedule, optionally of one poli. A doctor on leave
+        has status "leave"; a doctor without a session today is absent. Only today
+        can be asked. Rate limited per IP.
+      parameters:
+      - description: Only doctors of this poli
+        in: query
+        name: poli_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/apm.SessionBrief'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: 'APM: list today''s sessions'
+      tags:
+      - apm
   /api/v1/apm/visits:
     post:
       consumes:
@@ -2438,6 +2539,62 @@ paths:
       summary: Register a user
       tags:
       - auth
+  /api/v1/availability:
+    get:
+      description: 'Front office and superadmin. One row per active doctor and date
+        from the weekly schedules: practice hours, total quota, registered visits
+        and what is left. Defaults to 7 days from today; a period spans at most 31
+        days. A "leave" row has no quota; a "substitute" row counts the visits of
+        the doctor on leave. Registration (POST /visits) refuses a doctor without
+        a session, on leave, or with no quota left.'
+      parameters:
+      - description: Only doctors of this poli
+        in: query
+        name: poli_id
+        type: string
+      - description: Only this doctor
+        in: query
+        name: doctor_id
+        type: string
+      - description: First date (YYYY-MM-DD), default today
+        in: query
+        name: from
+        type: string
+      - description: Last date (YYYY-MM-DD), default 6 days after from
+        in: query
+        name: to
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/schedules.AvailabilityResponse'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List doctor availability
+      tags:
+      - schedules
   /api/v1/counters:
     get:
       description: Front Office only. Each counter comes with the queue it is handling
@@ -4773,12 +4930,14 @@ paths:
     post:
       consumes:
       - application/json
-      description: Superadmin only. Closes the doctor's session on a date (today or
-        later) and optionally hands it to a substitute doctor. The doctor must have
-        a schedule on that date. A substitute must be a different, active doctor who
-        practices on that weekday and is not on leave that day. When visits are already
-        registered, a substitute is required (409). Visits are not moved or cancelled;
-        the substitute's session counts them against its quota.
+      description: 'Superadmin only. Closes the doctor''s session on a date (today
+        or later) and optionally hands it to a substitute doctor. The doctor must
+        have a schedule on that date, unless a substitute is given: a substitute can
+        also cover a doctor who has no session that day. A substitute must be a different,
+        active doctor who practices on that weekday and is not on leave that day.
+        When visits are already registered, a substitute is required (409). Visits
+        are not moved or cancelled; the substitute''s session counts them against
+        its quota.'
       parameters:
       - description: Leave data
         in: body

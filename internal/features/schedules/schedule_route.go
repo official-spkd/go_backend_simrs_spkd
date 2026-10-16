@@ -16,3 +16,8 @@ func RegisterRoutes(rg *gin.RouterGroup, h *Handler, authenticated, restricted g
 	g.PUT("/:id", h.Update)
 	g.DELETE("/:id", h.Delete)
 }
+
+// RegisterAvailabilityRoutes mounts the read-only availability list used by registration.
+func RegisterAvailabilityRoutes(rg *gin.RouterGroup, h *Handler, authenticated, allowed gin.HandlerFunc) {
+	rg.GET("/availability", authenticated, allowed, h.ListAvailability)
+}
