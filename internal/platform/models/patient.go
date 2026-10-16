@@ -36,6 +36,9 @@ type Patient struct {
 	BirthDate time.Time `gorm:"type:date;not null"`
 	Gender    Gender    `gorm:"size:10;not null"`
 
+	// BPJSNumber is the 13-digit BPJS card number, if the patient has one.
+	BPJSNumber *string `gorm:"column:bpjs_number;size:13;uniqueIndex:idx_patients_bpjs,where:bpjs_number IS NOT NULL AND deleted_at IS NULL"`
+
 	BirthPlace    string `gorm:"size:100;not null"`
 	Religion      string `gorm:"size:50"`
 	Education     string `gorm:"size:50"`

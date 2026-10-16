@@ -13,7 +13,7 @@ import (
 
 var (
 	ErrNotFound      = models.ErrPatientNotFound
-	ErrAlreadyExists = errors.New("a patient with this NIK is already registered")
+	ErrAlreadyExists = errors.New("a patient with this NIK or BPJS number is already registered")
 )
 
 type Repository interface {
@@ -53,7 +53,7 @@ func (r *repository) List(ctx context.Context, q ListQuery) ([]models.Patient, i
 
 	if q.Search != "" {
 		like := "%" + escapeLike(strings.ToLower(q.Search)) + "%"
-		tx = tx.Where("LOWER(full_name) LIKE ? OR nik LIKE ? OR phone LIKE ? OR LOWER(medical_record_number) LIKE ?", like, like, like, like)
+		tx = tx.Where("LOWER(full_name) LIKE ? OR nik LIKE ? OR phone LIKE ? OR LOWER(medical_record_number) LIKE ? OR bpjs_number LIKE ?", like, like, like, like, like)
 	}
 	if q.Gender != "" {
 		tx = tx.Where("gender = ?", q.Gender)

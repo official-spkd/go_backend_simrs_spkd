@@ -12,6 +12,306 @@
     },
     "basePath": "/",
     "paths": {
+        "/api/v1/apm/doctors": {
+            "get": {
+                "description": "Public (no login). Active doctors of active polis, optionally of one poli. No license or account data is exposed.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "apm"
+                ],
+                "summary": "APM: list doctors",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Only doctors of this poli",
+                        "name": "poli_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/apm.DoctorBrief"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/apm/patients": {
+            "post": {
+                "description": "Public (no login). Creates a patient record with the same fields and validation as the front desk (NIK must be a valid, unused 16-digit number; bpjs_number optional). Returns the brief patient (id and No. RM) to pass to POST /apm/visits. An existing NIK or BPJS number is refused with 409: that person is a returning patient and should be looked up instead. Strictly rate limited per IP (5 per minute).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "apm"
+                ],
+                "summary": "APM: register a new patient",
+                "parameters": [
+                    {
+                        "description": "Patient data",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/patients.PatientRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/apm.PatientBrief"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/apm/patients/lookup": {
+            "get": {
+                "description": "Public (no login), for the self-service registration kiosk (APM). Send exactly one of nik, medical_record_number (RM-000001) or bpjs_number. Returns only what the kiosk needs to confirm the person (no NIK, contact, address or allergies). Strictly rate limited per IP (10 per minute).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "apm"
+                ],
+                "summary": "APM: find a returning patient",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "16-digit NIK",
+                        "name": "nik",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Medical record number, e.g. RM-000001",
+                        "name": "medical_record_number",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "13-digit BPJS card number",
+                        "name": "bpjs_number",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/apm.PatientBrief"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/apm/polis": {
+            "get": {
+                "description": "Public (no login). Active polis only, with only the fields a kiosk shows.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "apm"
+                ],
+                "summary": "APM: list polis",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/apm.PoliBrief"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/apm/visits": {
+            "post": {
+                "description": "Public (no login). Registers a patient (patient_id from the lookup, or from POST /apm/patients for a new patient) for a visit today with an active doctor of the chosen poli, following the same rules as the front desk (BPJS and insurance fields, responsible person under 18, no double registration). The kiosk cannot pick another date or approve the visit. Returns the ticket to print. Rate limited per IP (60 per minute).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "apm"
+                ],
+                "summary": "APM: register a visit",
+                "parameters": [
+                    {
+                        "description": "Registration",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/apm.RegisterRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/apm.Ticket"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/auth/login": {
             "post": {
                 "consumes": [
@@ -2318,7 +2618,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Front Office only. NIK must be unique and exactly 16 digits.",
+                "description": "Front Office only. NIK must be unique and exactly 16 digits; bpjs_number is optional (13 digits, unique).",
                 "consumes": [
                     "application/json"
                 ],
@@ -4258,6 +4558,248 @@
         }
     },
     "definitions": {
+        "apm.DoctorBrief": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "example": "9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "dr. Andi Wijaya, Sp.PD"
+                },
+                "poli": {
+                    "$ref": "#/definitions/apm.PoliBrief"
+                },
+                "specialization": {
+                    "type": "string",
+                    "example": "Internal Medicine"
+                }
+            }
+        },
+        "apm.PatientBrief": {
+            "type": "object",
+            "properties": {
+                "birth_date": {
+                    "type": "string",
+                    "example": "1990-05-17"
+                },
+                "bpjs_number": {
+                    "type": "string",
+                    "example": "0001234567890"
+                },
+                "full_name": {
+                    "type": "string",
+                    "example": "Siti Rahmawati"
+                },
+                "gender": {
+                    "enum": [
+                        "Male",
+                        "Female"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.Gender"
+                        }
+                    ],
+                    "example": "Female"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71"
+                },
+                "medical_record_number": {
+                    "type": "string",
+                    "example": "RM-000001"
+                },
+                "payer": {
+                    "enum": [
+                        "General",
+                        "BPJS",
+                        "Insurance"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.Payer"
+                        }
+                    ],
+                    "example": "BPJS"
+                }
+            }
+        },
+        "apm.PoliBrief": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "example": "7a1c2b6f-0d8e-4a71-9a1c-3f2b8c1e5d4a"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "General Clinic"
+                },
+                "prefix_code": {
+                    "type": "string",
+                    "example": "UMUM"
+                },
+                "room": {
+                    "type": "string",
+                    "example": "Room 101"
+                }
+            }
+        },
+        "apm.RegisterRequest": {
+            "type": "object",
+            "required": [
+                "chief_complaint",
+                "doctor_id",
+                "patient_id",
+                "penjamin",
+                "poli_id",
+                "visit_type"
+            ],
+            "properties": {
+                "bpjs_card_number": {
+                    "description": "BPJS only: required when penjamin is bpjs, rejected otherwise.",
+                    "type": "string",
+                    "example": "0001234567890"
+                },
+                "chief_complaint": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "example": "Fever and cough"
+                },
+                "control_letter_number": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "example": "0123R0010125K000001"
+                },
+                "coverage_limit": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "example": 15000000
+                },
+                "doctor_id": {
+                    "type": "string",
+                    "example": "9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93"
+                },
+                "document_type": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "example": "Referral letter"
+                },
+                "fktp_referral_number": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "example": "0123R0010125Y000001"
+                },
+                "insurance_name": {
+                    "description": "Asuransi only: insurance_name and policy_number are required when penjamin is asuransi.",
+                    "type": "string",
+                    "maxLength": 150,
+                    "example": "Prudential"
+                },
+                "patient_id": {
+                    "type": "string",
+                    "example": "3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71"
+                },
+                "penjamin": {
+                    "enum": [
+                        "umum",
+                        "bpjs",
+                        "asuransi"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.Penjamin"
+                        }
+                    ],
+                    "example": "bpjs"
+                },
+                "poli_id": {
+                    "type": "string",
+                    "example": "7a1c2b6f-0d8e-4a71-9a1c-3f2b8c1e5d4a"
+                },
+                "policy_number": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "example": "POL-2026-001234"
+                },
+                "responsible_person": {
+                    "description": "required for patients under 18",
+                    "type": "string",
+                    "maxLength": 150,
+                    "minLength": 3,
+                    "example": "Budi Santoso"
+                },
+                "visit_type": {
+                    "enum": [
+                        "baru",
+                        "kontrol"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.VisitType"
+                        }
+                    ],
+                    "example": "kontrol"
+                }
+            }
+        },
+        "apm.Ticket": {
+            "type": "object",
+            "properties": {
+                "doctor": {
+                    "$ref": "#/definitions/apm.DoctorBrief"
+                },
+                "medical_record_number": {
+                    "type": "string",
+                    "example": "RM-000001"
+                },
+                "patient_name": {
+                    "type": "string",
+                    "example": "Siti Rahmawati"
+                },
+                "penjamin": {
+                    "enum": [
+                        "umum",
+                        "bpjs",
+                        "asuransi"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.Penjamin"
+                        }
+                    ],
+                    "example": "bpjs"
+                },
+                "poli": {
+                    "$ref": "#/definitions/apm.PoliBrief"
+                },
+                "poli_queue_number": {
+                    "description": "queue inside the clinic",
+                    "type": "string",
+                    "example": "003"
+                },
+                "printed_at": {
+                    "type": "string"
+                },
+                "queue_number": {
+                    "description": "registration desk queue, called at the counters",
+                    "type": "string",
+                    "example": "A007"
+                },
+                "visit_date": {
+                    "type": "string",
+                    "example": "2026-10-16"
+                },
+                "visit_id": {
+                    "type": "string",
+                    "example": "104dd35e-2b3a-4b2a-b38c-8bdd0e1ecc79"
+                }
+            }
+        },
         "auth.LoginRequest": {
             "type": "object",
             "required": [
@@ -5449,6 +5991,11 @@
                     ],
                     "example": "O"
                 },
+                "bpjs_number": {
+                    "description": "optional BPJS card number",
+                    "type": "string",
+                    "example": "0001234567890"
+                },
                 "domicile_address": {
                     "type": "string",
                     "maxLength": 500,
@@ -5565,6 +6112,10 @@
                 "blood_type": {
                     "type": "string",
                     "example": "O"
+                },
+                "bpjs_number": {
+                    "type": "string",
+                    "example": "0001234567890"
                 },
                 "created_at": {
                     "type": "string"

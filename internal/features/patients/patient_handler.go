@@ -18,7 +18,7 @@ func NewHandler(service Service) *Handler {
 }
 
 // @Summary		Register a patient
-// @Description	Front Office only. NIK must be unique and exactly 16 digits.
+// @Description	Front Office only. NIK must be unique and exactly 16 digits; bpjs_number is optional (13 digits, unique).
 // @Tags			patients
 // @Accept			json
 // @Produce		json

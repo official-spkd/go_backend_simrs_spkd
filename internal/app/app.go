@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
+	"gin-quickstart/internal/features/apm"
 	"gin-quickstart/internal/features/auth"
 	"gin-quickstart/internal/features/doctors"
 	"gin-quickstart/internal/features/examinations"
@@ -56,6 +58,7 @@ func New(ctx context.Context, cfg *config.Config, db *gorm.DB) (*gin.Engine, err
 	patientSvc := patients.NewService(patients.NewRepository(db))
 	visitSvc := visits.NewService(visits.NewRepository(db), patientSvc, doctorSvc)
 	examinationSvc := examinations.NewService(examinations.NewRepository(db), visitSvc, userSvc)
+	apmSvc := apm.NewService(apm.NewRepository(db), visitSvc, patientSvc)
 	queueSvc := queues.NewService(queues.NewRepository(db), userSvc)
 	if err := queueSvc.SeedCounters(ctx); err != nil {
 		return nil, fmt.Errorf("seed counters: %w", err)
@@ -70,6 +73,8 @@ func New(ctx context.Context, cfg *config.Config, db *gorm.DB) (*gin.Engine, err
 	router.GET("/ping", ping)
 
 	v1 := router.Group("/api/v1")
+	// The self-service kiosk (APM) has no login; its routes are rate limited per IP instead.
+	apm.RegisterRoutes(v1, apm.NewHandler(apmSvc), middleware.RateLimit(10, time.Minute), middleware.RateLimit(5, time.Minute), middleware.RateLimit(60, time.Minute))
 	auth.RegisterRoutes(v1, auth.NewHandler(authSvc), optionalAuth, requiredAuth)
 	superadminOnly := middleware.RequireRoles(roles.Superadmin)
 	roles.RegisterRoutes(v1, roles.NewHandler(roleSvc), requiredAuth, superadminOnly)

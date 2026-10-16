@@ -93,6 +93,10 @@ func apply(p *models.Patient, req PatientRequest) error {
 	p.FullName = strings.TrimSpace(req.FullName)
 	p.BirthDate = birthDate
 	p.Gender = req.Gender
+	p.BPJSNumber = nil
+	if bpjs := strings.TrimSpace(req.BPJSNumber); bpjs != "" {
+		p.BPJSNumber = &bpjs
+	}
 	p.BirthPlace = strings.TrimSpace(req.BirthPlace)
 	p.Religion = strings.TrimSpace(req.Religion)
 	p.Education = strings.TrimSpace(req.Education)

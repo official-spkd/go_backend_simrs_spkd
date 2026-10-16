@@ -15,6 +15,7 @@ type PatientRequest struct {
 	BirthDate string        `json:"birth_date" binding:"required,datetime=2006-01-02" example:"1990-05-17"`
 	Gender    models.Gender `json:"gender" binding:"required,oneof=Male Female" enums:"Male,Female" example:"Female"`
 
+	BPJSNumber    string `json:"bpjs_number" binding:"omitempty,numeric,len=13" example:"0001234567890"` // optional BPJS card number
 	BirthPlace    string `json:"birth_place" binding:"required,notblank,max=100" example:"Jakarta"`
 	Religion      string `json:"religion" binding:"omitempty,notblank,max=50" example:"Islam"`
 	Education     string `json:"education" binding:"omitempty,notblank,max=50" example:"Bachelor"`
@@ -59,13 +60,14 @@ type Response struct {
 	BirthDate           string        `json:"birth_date" example:"1990-05-17"`
 	Gender              models.Gender `json:"gender" enums:"Male,Female" example:"Female"`
 
-	BirthPlace    string `json:"birth_place" example:"Jakarta"`
-	Religion      string `json:"religion" example:"Islam"`
-	Education     string `json:"education" example:"Bachelor"`
-	Occupation    string `json:"occupation" example:"Teacher"`
-	MaritalStatus string `json:"marital_status" example:"Married"`
-	BloodType     string `json:"blood_type" example:"O"`
-	Allergies     string `json:"allergies" example:"Penicillin, peanuts"`
+	BPJSNumber    *string `json:"bpjs_number" example:"0001234567890"`
+	BirthPlace    string  `json:"birth_place" example:"Jakarta"`
+	Religion      string  `json:"religion" example:"Islam"`
+	Education     string  `json:"education" example:"Bachelor"`
+	Occupation    string  `json:"occupation" example:"Teacher"`
+	MaritalStatus string  `json:"marital_status" example:"Married"`
+	BloodType     string  `json:"blood_type" example:"O"`
+	Allergies     string  `json:"allergies" example:"Penicillin, peanuts"`
 
 	Phone string `json:"phone" example:"081234567890"`
 	Email string `json:"email" example:"siti@example.com"`
@@ -91,6 +93,7 @@ func toResponse(p *models.Patient) Response {
 		FullName:                     p.FullName,
 		BirthDate:                    p.BirthDate.Format(dateLayout),
 		Gender:                       p.Gender,
+		BPJSNumber:                   p.BPJSNumber,
 		BirthPlace:                   p.BirthPlace,
 		Religion:                     p.Religion,
 		Education:                    p.Education,

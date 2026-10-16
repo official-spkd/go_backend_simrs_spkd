@@ -1,5 +1,178 @@
 basePath: /
 definitions:
+  apm.DoctorBrief:
+    properties:
+      id:
+        example: 9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93
+        type: string
+      name:
+        example: dr. Andi Wijaya, Sp.PD
+        type: string
+      poli:
+        $ref: '#/definitions/apm.PoliBrief'
+      specialization:
+        example: Internal Medicine
+        type: string
+    type: object
+  apm.PatientBrief:
+    properties:
+      birth_date:
+        example: "1990-05-17"
+        type: string
+      bpjs_number:
+        example: "0001234567890"
+        type: string
+      full_name:
+        example: Siti Rahmawati
+        type: string
+      gender:
+        allOf:
+        - $ref: '#/definitions/models.Gender'
+        enum:
+        - Male
+        - Female
+        example: Female
+      id:
+        example: 3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71
+        type: string
+      medical_record_number:
+        example: RM-000001
+        type: string
+      payer:
+        allOf:
+        - $ref: '#/definitions/models.Payer'
+        enum:
+        - General
+        - BPJS
+        - Insurance
+        example: BPJS
+    type: object
+  apm.PoliBrief:
+    properties:
+      id:
+        example: 7a1c2b6f-0d8e-4a71-9a1c-3f2b8c1e5d4a
+        type: string
+      name:
+        example: General Clinic
+        type: string
+      prefix_code:
+        example: UMUM
+        type: string
+      room:
+        example: Room 101
+        type: string
+    type: object
+  apm.RegisterRequest:
+    properties:
+      bpjs_card_number:
+        description: 'BPJS only: required when penjamin is bpjs, rejected otherwise.'
+        example: "0001234567890"
+        type: string
+      chief_complaint:
+        example: Fever and cough
+        maxLength: 1000
+        type: string
+      control_letter_number:
+        example: 0123R0010125K000001
+        maxLength: 50
+        type: string
+      coverage_limit:
+        example: 15000000
+        minimum: 0
+        type: integer
+      doctor_id:
+        example: 9d1f6c2a-7b3e-4a58-8c1d-0e5f4b2a6d93
+        type: string
+      document_type:
+        example: Referral letter
+        maxLength: 50
+        type: string
+      fktp_referral_number:
+        example: 0123R0010125Y000001
+        maxLength: 50
+        type: string
+      insurance_name:
+        description: 'Asuransi only: insurance_name and policy_number are required
+          when penjamin is asuransi.'
+        example: Prudential
+        maxLength: 150
+        type: string
+      patient_id:
+        example: 3f2b8c1e-5d4a-4e7b-9a1c-2b6f0d8e4a71
+        type: string
+      penjamin:
+        allOf:
+        - $ref: '#/definitions/models.Penjamin'
+        enum:
+        - umum
+        - bpjs
+        - asuransi
+        example: bpjs
+      poli_id:
+        example: 7a1c2b6f-0d8e-4a71-9a1c-3f2b8c1e5d4a
+        type: string
+      policy_number:
+        example: POL-2026-001234
+        maxLength: 50
+        type: string
+      responsible_person:
+        description: required for patients under 18
+        example: Budi Santoso
+        maxLength: 150
+        minLength: 3
+        type: string
+      visit_type:
+        allOf:
+        - $ref: '#/definitions/models.VisitType'
+        enum:
+        - baru
+        - kontrol
+        example: kontrol
+    required:
+    - chief_complaint
+    - doctor_id
+    - patient_id
+    - penjamin
+    - poli_id
+    - visit_type
+    type: object
+  apm.Ticket:
+    properties:
+      doctor:
+        $ref: '#/definitions/apm.DoctorBrief'
+      medical_record_number:
+        example: RM-000001
+        type: string
+      patient_name:
+        example: Siti Rahmawati
+        type: string
+      penjamin:
+        allOf:
+        - $ref: '#/definitions/models.Penjamin'
+        enum:
+        - umum
+        - bpjs
+        - asuransi
+        example: bpjs
+      poli:
+        $ref: '#/definitions/apm.PoliBrief'
+      poli_queue_number:
+        description: queue inside the clinic
+        example: "003"
+        type: string
+      printed_at:
+        type: string
+      queue_number:
+        description: registration desk queue, called at the counters
+        example: A007
+        type: string
+      visit_date:
+        example: "2026-10-16"
+        type: string
+      visit_id:
+        example: 104dd35e-2b3a-4b2a-b38c-8bdd0e1ecc79
+        type: string
+    type: object
   auth.LoginRequest:
     properties:
       identifier:
@@ -872,6 +1045,10 @@ definitions:
         - O
         example: O
         type: string
+      bpjs_number:
+        description: optional BPJS card number
+        example: "0001234567890"
+        type: string
       domicile_address:
         example: Jl. Mawar No. 9, Depok
         maxLength: 500
@@ -970,6 +1147,9 @@ definitions:
         type: string
       blood_type:
         example: O
+        type: string
+      bpjs_number:
+        example: "0001234567890"
         type: string
       created_at:
         type: string
@@ -1738,6 +1918,203 @@ info:
   title: SIMRS API
   version: "1.0"
 paths:
+  /api/v1/apm/doctors:
+    get:
+      description: Public (no login). Active doctors of active polis, optionally of
+        one poli. No license or account data is exposed.
+      parameters:
+      - description: Only doctors of this poli
+        in: query
+        name: poli_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/apm.DoctorBrief'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: 'APM: list doctors'
+      tags:
+      - apm
+  /api/v1/apm/patients:
+    post:
+      consumes:
+      - application/json
+      description: 'Public (no login). Creates a patient record with the same fields
+        and validation as the front desk (NIK must be a valid, unused 16-digit number;
+        bpjs_number optional). Returns the brief patient (id and No. RM) to pass to
+        POST /apm/visits. An existing NIK or BPJS number is refused with 409: that
+        person is a returning patient and should be looked up instead. Strictly rate
+        limited per IP (5 per minute).'
+      parameters:
+      - description: Patient data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/patients.PatientRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/apm.PatientBrief'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: 'APM: register a new patient'
+      tags:
+      - apm
+  /api/v1/apm/patients/lookup:
+    get:
+      description: Public (no login), for the self-service registration kiosk (APM).
+        Send exactly one of nik, medical_record_number (RM-000001) or bpjs_number.
+        Returns only what the kiosk needs to confirm the person (no NIK, contact,
+        address or allergies). Strictly rate limited per IP (10 per minute).
+      parameters:
+      - description: 16-digit NIK
+        in: query
+        name: nik
+        type: string
+      - description: Medical record number, e.g. RM-000001
+        in: query
+        name: medical_record_number
+        type: string
+      - description: 13-digit BPJS card number
+        in: query
+        name: bpjs_number
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/apm.PatientBrief'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: 'APM: find a returning patient'
+      tags:
+      - apm
+  /api/v1/apm/polis:
+    get:
+      description: Public (no login). Active polis only, with only the fields a kiosk
+        shows.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/apm.PoliBrief'
+                  type: array
+              type: object
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: 'APM: list polis'
+      tags:
+      - apm
+  /api/v1/apm/visits:
+    post:
+      consumes:
+      - application/json
+      description: Public (no login). Registers a patient (patient_id from the lookup,
+        or from POST /apm/patients for a new patient) for a visit today with an active
+        doctor of the chosen poli, following the same rules as the front desk (BPJS
+        and insurance fields, responsible person under 18, no double registration).
+        The kiosk cannot pick another date or approve the visit. Returns the ticket
+        to print. Rate limited per IP (60 per minute).
+      parameters:
+      - description: Registration
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/apm.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/apm.Ticket'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: 'APM: register a visit'
+      tags:
+      - apm
   /api/v1/auth/login:
     post:
       consumes:
@@ -3198,7 +3575,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Front Office only. NIK must be unique and exactly 16 digits.
+      description: Front Office only. NIK must be unique and exactly 16 digits; bpjs_number
+        is optional (13 digits, unique).
       parameters:
       - description: Patient data
         in: body
