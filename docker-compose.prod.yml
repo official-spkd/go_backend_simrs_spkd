@@ -1,0 +1,135 @@
+# Production, backend only: API + PostgreSQL + MinIO behind Caddy (automatic HTTPS), one subdomain each.
+# The frontend is deployed separately (simrs-frontend has its own compose); it is not part of this stack.
+#
+#   api.<DOMAIN>    backend API (+ /swagger)
+#   files.<DOMAIN>  MinIO S3 endpoint; browsers upload and download files here via presigned URLs
+#
+# Setup:
+#   1. Point DNS A/AAAA records for api and files at this server; open ports 80 and 443.
+#   2. cp .env.prod.example .env.prod   and fill it in (never commit .env.prod).
+#      Set CORS_ALLOWED_ORIGINS to the address(es) where the frontend is served.
+#   3. docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+# Always pass --env-file .env.prod: without it Compose reads the development .env instead. The API
+# container reads no env file; DB_HOST, MINIO_ENDPOINT and MINIO_PUBLIC_ENDPOINT are set below for the
+# private network and the public subdomain.
+#
+# Every container, network and volume is named "simrs-v2-api-prod*" / "simrs_v2_api_prod_*" so this
+# stack cannot clash with other services on the same host. Only Caddy publishes ports; PostgreSQL,
+# MinIO and the API are reachable on the private network only.
+name: simrs-v2-api-prod
+
+services:
+  simrs-v2-api-prod-proxy:
+    image: caddy:2-alpine
+    container_name: simrs-v2-api-prod-proxy
+    restart: unless-stopped
+    depends_on:
+      - simrs-v2-api-prod
+      - simrs-v2-api-prod-minio
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp" # HTTP/3
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env.prod}
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in .env.prod}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - simrs_v2_api_prod_caddy_data:/data # certificates: keep it, Let's Encrypt rate-limits reissuing
+      - simrs_v2_api_prod_caddy_config:/config
+    networks:
+      - simrs-v2-api-prod-net
+
+  simrs-v2-api-prod:
+    build: .
+    image: simrs-v2-api-prod:latest
+    container_name: simrs-v2-api-prod
+    restart: unless-stopped
+    depends_on:
+      simrs-v2-api-prod-postgres:
+        condition: service_healthy
+      simrs-v2-api-prod-minio:
+        condition: service_started # the API retries on restart until MinIO answers
+    environment:
+      APP_HOST: 0.0.0.0
+      APP_PORT: "8080"
+      DB_HOST: simrs-v2-api-prod-postgres
+      DB_PORT: "5432"
+      DB_USER: ${DB_USER:?set DB_USER in .env.prod}
+      DB_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env.prod}
+      DB_NAME: ${DB_NAME:-simrs}
+      DB_SSLMODE: disable # traffic never leaves the private network
+      DB_TIMEZONE: ${DB_TIMEZONE:-Asia/Jakarta}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env.prod (at least 32 characters)}
+      JWT_ACCESS_TTL_HOURS: ${JWT_ACCESS_TTL_HOURS:-8}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?set CORS_ALLOWED_ORIGINS in .env.prod (the frontend origin, e.g. https://app.example.com)}
+      MINIO_ENDPOINT: simrs-v2-api-prod-minio:9000
+      MINIO_USE_SSL: "false"
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?set MINIO_ACCESS_KEY in .env.prod}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?set MINIO_SECRET_KEY in .env.prod (at least 8 characters)}
+      MINIO_BUCKET: ${MINIO_BUCKET:-simrs-files}
+      MINIO_REGION: ${MINIO_REGION:-us-east-1}
+      # Presigned URLs are signed for this host, so it must be the public one the browser opens.
+      MINIO_PUBLIC_ENDPOINT: https://files.${DOMAIN}
+    networks:
+      - simrs-v2-api-prod-net
+
+  simrs-v2-api-prod-postgres:
+    image: postgres:16-alpine
+    container_name: simrs-v2-api-prod-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:?set DB_USER in .env.prod}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env.prod}
+      POSTGRES_DB: ${DB_NAME:-simrs}
+    volumes:
+      - simrs_v2_api_prod_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - simrs-v2-api-prod-net
+
+  # The Chainguard image runs as user 65532 and has no shell, so this one-off container gives that
+  # user the data volume before MinIO starts.
+  simrs-v2-api-prod-minio-init:
+    image: alpine:3.20
+    container_name: simrs-v2-api-prod-minio-init
+    command: ["chown", "-R", "65532:65532", "/data"]
+    volumes:
+      - simrs_v2_api_prod_miniodata:/data
+    restart: "no"
+
+  simrs-v2-api-prod-minio:
+    image: cgr.dev/chainguard/minio:latest
+    container_name: simrs-v2-api-prod-minio
+    restart: unless-stopped
+    depends_on:
+      simrs-v2-api-prod-minio-init:
+        condition: service_completed_successfully
+    # The web console (port 9001) is not published. To use it, add a console.<DOMAIN> block to the
+    # Caddyfile that proxies to simrs-v2-api-prod-minio:9001, and protect it.
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:?set MINIO_ACCESS_KEY in .env.prod}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:?set MINIO_SECRET_KEY in .env.prod (at least 8 characters)}
+    volumes:
+      - simrs_v2_api_prod_miniodata:/data
+    networks:
+      - simrs-v2-api-prod-net
+
+networks:
+  simrs-v2-api-prod-net:
+    name: simrs-v2-api-prod-net
+
+volumes:
+  simrs_v2_api_prod_pgdata:
+    name: simrs_v2_api_prod_pgdata
+  simrs_v2_api_prod_miniodata:
+    name: simrs_v2_api_prod_miniodata
+  simrs_v2_api_prod_caddy_data:
+    name: simrs_v2_api_prod_caddy_data
+  simrs_v2_api_prod_caddy_config:
+    name: simrs_v2_api_prod_caddy_config
